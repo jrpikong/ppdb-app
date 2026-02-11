@@ -89,6 +89,16 @@ class School extends Model
     }
 
     /**
+     * Retrieve the model for a bound value (case-insensitive)
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->orWhere($field ?? $this->getRouteKeyName(), strtoupper($value))
+            ->firstOrFail();
+    }
+
+    /**
      * Get tenant avatar (logo)
      */
     public function getFilamentAvatarUrl(): ?string

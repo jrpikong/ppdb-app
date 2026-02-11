@@ -40,6 +40,8 @@ class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
+    protected string $guard_name = 'web';
+
     protected $fillable = [
         'school_id',
         'name',
@@ -202,13 +204,28 @@ class User extends Authenticatable implements FilamentUser
 
     // ==================== FILAMENT PANEL ACCESS ====================
 
+    protected static function booted(): void
+    {
+        // Auto-set team context when user is loaded
+        static::retrieved(function ($user) {
+            if ($user->school_id) {
+                app(\Spatie\Permission\PermissionRegistrar::class)
+                    ->setPermissionsTeamId($user->school_id);
+            } else {
+                app(\Spatie\Permission\PermissionRegistrar::class)
+                    ->setPermissionsTeamId(0);
+            }
+        });
+    }
     public function canAccessPanel(Panel $panel): bool
     {
-        \Log::info('Panel Access Check', [
-            'user' => $this->email,
-            'panel' => $panel->getId(),
-            'roles' => $this->getRoleNames(),
+        \Log::info('canAccessPanel called', [
+            'user_email' => $this->email,
+            'panel_id' => $panel->getId(),
+            'roles' => $this->getRoleNames()->toArray(),
             'school_id' => $this->school_id,
+            'is_active' => $this->is_active,
+            'has_super_admin_role' => $this->hasRole('super_admin'),
         ]);
 
         if ($panel->getId() === 'superadmin') {

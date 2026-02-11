@@ -228,6 +228,15 @@ return [
     | when editing roles in your application.
     |
     */
+    'guard_names' => [
+        'web' => [  // ✅ HARUS 'web', bukan yang lain
+            'super_admin',
+            'school_admin',
+            'admission_admin',
+            'finance_admin',
+            'panel_user',
+        ],
+    ],
 
     'custom_permissions' => [],
 
