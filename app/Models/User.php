@@ -1,53 +1,60 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
-use Filament\Panel;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Traits\HasRoles;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable
+/**
+ * User Model
+ *
+ * Multi-role user model for VIS Admission System
+ *
+ * @property int $id
+ * @property int|null $school_id
+ * @property string $name
+ * @property string $email
+ * @property Carbon|null $email_verified_at
+ * @property string $password
+ * @property string|null $phone
+ * @property string|null $avatar
+ * @property string|null $employee_id
+ * @property string|null $department
+ * @property bool $is_active
+ * @property string|null $remember_token
+ */
+class User extends Authenticatable implements FilamentUser
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
+        'school_id',
         'name',
         'email',
         'password',
         'phone',
         'avatar',
+        'employee_id',
+        'department',
         'is_active',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -57,186 +64,213 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Get all registrations for this user (as student).
-     */
-    public function registrations(): HasMany
+    // ==================== RELATIONSHIPS ====================
+
+    public function school(): BelongsTo
     {
-        return $this->hasMany(Registration::class);
+        return $this->belongsTo(School::class);
     }
 
-    /**
-     * Get the current/active registration for this user.
-     */
-    public function currentRegistration(): HasOne
+    public function applications(): HasMany
     {
-        return $this->hasOne(Registration::class)
-            ->whereIn('status', ['draft', 'submitted', 'verified', 'passed'])
-            ->latest();
+        return $this->hasMany(Application::class);
     }
 
-    /**
-     * Get registrations verified by this user (as admin/panitia).
-     */
-    public function verifiedRegistrations(): HasMany
+    public function schedules(): HasMany
     {
-        return $this->hasMany(Registration::class, 'verified_by');
+        return $this->hasMany(Schedule::class, 'interviewer_id');
     }
 
-    /**
-     * Get payments verified by this user.
-     */
-    public function verifiedPayments(): HasMany
-    {
-        return $this->hasMany(Payment::class, 'verified_by');
-    }
-
-    /**
-     * Get documents verified by this user.
-     */
     public function verifiedDocuments(): HasMany
     {
         return $this->hasMany(Document::class, 'verified_by');
     }
 
-    /**
-     * Get scores inputted by this user.
-     */
-    public function inputtedScores(): HasMany
+    public function verifiedPayments(): HasMany
     {
-        return $this->hasMany(Score::class, 'inputted_by');
+        return $this->hasMany(Payment::class, 'verified_by');
     }
 
-    /**
-     * Get announcements published by this user.
-     */
-    public function publishedAnnouncements(): HasMany
+    public function reviewedApplications(): HasMany
     {
-        return $this->hasMany(Announcement::class, 'published_by');
+        return $this->hasMany(Application::class, 'reviewed_by');
     }
 
-    /**
-     * Get re-registrations verified by this user.
-     */
-    public function verifiedReRegistrations(): HasMany
+    public function assignedApplications(): HasMany
     {
-        return $this->hasMany(ReRegistration::class, 'verified_by');
+        return $this->hasMany(Application::class, 'assigned_to');
     }
 
-    /**
-     * Get activity logs for this user.
-     */
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
     }
 
-    /**
-     * Check if user is a super admin.
-     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class, 'enrolled_by');
+    }
+
+    // ==================== SCOPES ====================
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeStaff(Builder $query): Builder
+    {
+        return $query->whereNotNull('school_id')
+                     ->whereHas('roles', fn($q) =>
+                         $q->whereIn('name', ['super_admin', 'admin', 'admission_admin', 'finance_admin'])
+                     );
+    }
+
+    public function scopeParents(Builder $query): Builder
+    {
+        return $query->whereHas('roles', fn($q) => $q->where('name', 'parent'));
+    }
+
+    public function scopeForSchool(Builder $query, int $schoolId): Builder
+    {
+        return $query->where('school_id', $schoolId);
+    }
+
+    // ==================== ACCESSORS ====================
+
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function() {
+                if ($this->avatar) {
+                    return \Storage::url($this->avatar);
+                }
+
+                return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+            }
+        );
+    }
+
+    protected function initials(): Attribute
+    {
+        return Attribute::make(
+            get: function() {
+                $words = explode(' ', $this->name);
+
+                if (count($words) >= 2) {
+                    return strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+                }
+
+                return strtoupper(substr($this->name, 0, 2));
+            }
+        );
+    }
+
+    // ==================== ROLE CHECK METHODS ====================
+
     public function isSuperAdmin(): bool
     {
         return $this->hasRole('super_admin');
     }
 
-    /**
-     * Check if user is an admin sekolah.
-     */
-    public function isAdminSekolah(): bool
+    public function isAdmin(): bool
     {
-        return $this->hasRole('admin_sekolah');
+        return $this->hasRole('admin');
     }
 
-    /**
-     * Check if user is panitia.
-     */
-    public function isPanitia(): bool
+    public function isAdmissionAdmin(): bool
     {
-        return $this->hasRole('panitia');
+        return $this->hasRole('admission_admin');
     }
 
-    /**
-     * Check if user is a student (calon siswa).
-     */
-    public function isStudent(): bool
+    public function isFinanceAdmin(): bool
     {
-        return $this->hasRole('calon_siswa');
+        return $this->hasRole('finance_admin');
     }
 
-    /**
-     * Get avatar URL.
-     */
-    public function getAvatarUrlAttribute(): string
+    public function isParent(): bool
     {
-        if ($this->avatar) {
-            return \Storage::url($this->avatar);
-        }
-
-        // Default avatar using UI Avatars
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+        return $this->hasRole('parent');
     }
 
-    /**
-     * Scope to only include active users.
-     */
-    public function scopeActive($query)
+    public function isStaff(): bool
     {
-        return $query->where('is_active', true);
+        return $this->school_id !== null && !$this->isParent();
     }
 
-    /**
-     * Scope to only include students.
-     */
-    public function scopeStudents($query)
-    {
-        return $query->role('calon_siswa');
-    }
+    // ==================== FILAMENT PANEL ACCESS ====================
 
-    /**
-     * Scope to only include admin users.
-     */
-    public function scopeAdmins($query)
-    {
-        return $query->role(['super_admin', 'admin_sekolah', 'panitia']);
-    }
-
-    /**
-     * Get user initials.
-     */
-    public function getInitialsAttribute(): string
-    {
-        $words = explode(' ', $this->name);
-
-        if (count($words) >= 2) {
-            return strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
-        }
-
-        return strtoupper(substr($this->name, 0, 2));
-    }
-
-    /**
-     * Determine which panel(s) user can access
-     */
     public function canAccessPanel(Panel $panel): bool
     {
-        // Admin panel - for admins and panitia only
-        if ($panel->getId() === 'admin') {
-            return $this->hasAnyRole(['super_admin', 'admin_sekolah', 'panitia']);
+        // Only active users can access panels
+        if (!$this->is_active) {
+            return false;
         }
 
-        // Student panel - for students only
-        if ($panel->getId() === 'student') {
-            return $this->hasRole('calon_siswa');
+        // Admin panel - for staff only
+        if ($panel->getId() === 'admin') {
+            return $this->hasAnyRole(['super_admin', 'admin', 'admission_admin', 'finance_admin']);
         }
 
         return false;
     }
 
-    /**
-     * Get user's name for Filament
-     */
     public function getFilamentName(): string
     {
         return $this->name;
+    }
+
+    // ==================== HELPER METHODS ====================
+
+    public function hasActiveApplications(): bool
+    {
+        return $this->applications()
+            ->whereIn('status', ['draft', 'submitted', 'under_review'])
+            ->exists();
+    }
+
+    public function getTotalApplications(): int
+    {
+        return $this->applications()->count();
+    }
+
+    public function getAcceptedApplications(): int
+    {
+        return $this->applications()->where('status', 'accepted')->count();
+    }
+
+    public function canCreateApplication(): bool
+    {
+        return $this->isParent() && Setting::allowsRegistration();
+    }
+
+    public function assignToSchool(int $schoolId): bool
+    {
+        $this->school_id = $schoolId;
+        return $this->save();
+    }
+
+    public function activate(): bool
+    {
+        $this->is_active = true;
+        return $this->save();
+    }
+
+    public function deactivate(): bool
+    {
+        $this->is_active = false;
+        return $this->save();
+    }
+
+    // ==================== ACTIVITY LOGGING ====================
+
+    public function logActivity(string $description, ?string $event = null): ActivityLog
+    {
+        return ActivityLog::logActivity(
+            description: $description,
+            logName: 'user',
+            event: $event,
+            userId: $this->id
+        );
     }
 }

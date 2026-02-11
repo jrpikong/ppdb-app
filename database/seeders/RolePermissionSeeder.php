@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -10,190 +12,294 @@ class RolePermissionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * 
+     * Creates roles and permissions for VIS multi-tenant admission system
      */
     public function run(): void
     {
+        $this->command->info('🔐 Creating Roles & Permissions...');
+        
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Create permissions
+        // ==================== CREATE PERMISSIONS ====================
+        
+        $this->command->info('📝 Creating permissions...');
+        
         $permissions = [
-            // Dashboard
+            // Dashboard & Analytics
             'view_dashboard',
-            'view_statistics',
+            'view_analytics',
+            'view_global_reports',
+            
+            // School Management (Super Admin Only)
+            'view_any_school',
+            'view_school',
+            'create_school',
+            'update_school',
+            'delete_school',
             
             // Academic Year
-            'view_academic_years',
-            'create_academic_years',
-            'edit_academic_years',
-            'delete_academic_years',
+            'view_any_academic_year',
+            'view_academic_year',
+            'create_academic_year',
+            'update_academic_year',
+            'delete_academic_year',
             
-            // Registration Period
-            'view_registration_periods',
-            'create_registration_periods',
-            'edit_registration_periods',
-            'delete_registration_periods',
+            // Level Management
+            'view_any_level',
+            'view_level',
+            'create_level',
+            'update_level',
+            'delete_level',
             
-            // Major
-            'view_majors',
-            'create_majors',
-            'edit_majors',
-            'delete_majors',
+            // Admission Period
+            'view_any_admission_period',
+            'view_admission_period',
+            'create_admission_period',
+            'update_admission_period',
+            'delete_admission_period',
             
-            // Registration
-            'view_registrations',
-            'create_registrations',
-            'edit_registrations',
-            'delete_registrations',
-            'verify_registrations',
-            'export_registrations',
+            // Application Management
+            'view_any_application',
+            'view_application',
+            'create_application',
+            'update_application',
+            'delete_application',
+            'review_application',
+            'approve_application',
+            'reject_application',
+            'assign_application',
+            'export_applications',
             
-            // Document
-            'view_documents',
-            'upload_documents',
-            'verify_documents',
-            'delete_documents',
+            // Document Verification
+            'view_any_document',
+            'view_document',
+            'upload_document',
+            'verify_document',
+            'reject_document',
+            'delete_document',
             
-            // Payment Type
-            'view_payment_types',
-            'create_payment_types',
-            'edit_payment_types',
-            'delete_payment_types',
+            // Payment Management
+            'view_any_payment_type',
+            'view_payment_type',
+            'create_payment_type',
+            'update_payment_type',
+            'delete_payment_type',
             
-            // Payment
-            'view_payments',
-            'create_payments',
-            'verify_payments',
-            'delete_payments',
+            'view_any_payment',
+            'view_payment',
+            'create_payment',
+            'verify_payment',
+            'reject_payment',
+            'refund_payment',
             'export_payments',
             
-            // Score
-            'view_scores',
-            'input_scores',
-            'edit_scores',
-            'delete_scores',
-            'update_rankings',
+            // Schedule Management
+            'view_any_schedule',
+            'view_schedule',
+            'create_schedule',
+            'update_schedule',
+            'delete_schedule',
+            'complete_schedule',
             
-            // Announcement
-            'view_announcements',
-            'create_announcements',
-            'publish_announcements',
-            'delete_announcements',
+            // Medical Records
+            'view_any_medical_record',
+            'view_medical_record',
+            'create_medical_record',
+            'update_medical_record',
+            'delete_medical_record',
             
-            // Re-registration
-            'view_re_registrations',
-            'verify_re_registrations',
-            'delete_re_registrations',
+            // Enrollment
+            'view_any_enrollment',
+            'view_enrollment',
+            'create_enrollment',
+            'update_enrollment',
+            'delete_enrollment',
+            'withdraw_enrollment',
             
             // User Management
-            'view_users',
-            'create_users',
-            'edit_users',
-            'delete_users',
+            'view_any_user',
+            'view_user',
+            'create_user',
+            'update_user',
+            'delete_user',
+            'assign_roles',
             
             // Settings
             'view_settings',
-            'edit_settings',
+            'update_settings',
+            'update_system_settings',
             
-            // Activity Log
-            'view_activity_logs',
-            'delete_activity_logs',
+            // Activity Logs
+            'view_any_activity_log',
+            'view_activity_log',
+            'delete_activity_log',
             
             // Reports
-            'view_reports',
+            'generate_reports',
             'export_reports',
+            'view_financial_reports',
         ];
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // Create roles and assign permissions
+        $this->command->info("✓ Created {$this->count($permissions)} permissions");
 
-        // 1. Super Admin - Full access
+        // ==================== CREATE ROLES ====================
+        
+        $this->command->info('👥 Creating roles...');
+
+        // 1. SUPER ADMIN (Global Access - No Tenant)
+        $this->command->info('  Creating: super_admin...');
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
         $superAdmin->givePermissionTo(Permission::all());
+        $this->command->info('  ✓ super_admin: Full system access');
 
-        // 2. Admin Sekolah - Almost full access except user management
-        $adminSekolah = Role::firstOrCreate(['name' => 'admin_sekolah']);
-        $adminSekolah->givePermissionTo([
+        // 2. SCHOOL ADMIN (Per School - Full School Access)
+        $this->command->info('  Creating: school_admin...');
+        $schoolAdmin = Role::firstOrCreate(['name' => 'school_admin']);
+        $schoolAdmin->givePermissionTo([
+            // Dashboard
             'view_dashboard',
-            'view_statistics',
-            'view_academic_years',
-            'create_academic_years',
-            'edit_academic_years',
-            'view_registration_periods',
-            'create_registration_periods',
-            'edit_registration_periods',
-            'view_majors',
-            'create_majors',
-            'edit_majors',
-            'view_registrations',
-            'edit_registrations',
-            'verify_registrations',
-            'export_registrations',
-            'view_documents',
-            'verify_documents',
-            'view_payment_types',
-            'create_payment_types',
-            'edit_payment_types',
-            'view_payments',
-            'verify_payments',
-            'export_payments',
-            'view_scores',
-            'input_scores',
-            'edit_scores',
-            'update_rankings',
-            'view_announcements',
-            'create_announcements',
-            'publish_announcements',
-            'view_re_registrations',
-            'verify_re_registrations',
-            'view_settings',
-            'edit_settings',
-            'view_activity_logs',
-            'view_reports',
-            'export_reports',
+            'view_analytics',
+            
+            // Academic Management
+            'view_any_academic_year', 'view_academic_year', 'create_academic_year', 'update_academic_year',
+            'view_any_level', 'view_level', 'create_level', 'update_level',
+            'view_any_admission_period', 'view_admission_period', 'create_admission_period', 'update_admission_period',
+            
+            // Application Management
+            'view_any_application', 'view_application', 'update_application', 'review_application',
+            'approve_application', 'reject_application', 'assign_application', 'export_applications',
+            
+            // Documents
+            'view_any_document', 'view_document', 'verify_document', 'reject_document',
+            
+            // Payments
+            'view_any_payment_type', 'view_payment_type', 'create_payment_type', 'update_payment_type',
+            'view_any_payment', 'view_payment', 'verify_payment', 'export_payments',
+            
+            // Schedules
+            'view_any_schedule', 'view_schedule', 'create_schedule', 'update_schedule', 'complete_schedule',
+            
+            // Medical Records
+            'view_any_medical_record', 'view_medical_record',
+            
+            // Enrollment
+            'view_any_enrollment', 'view_enrollment', 'create_enrollment', 'update_enrollment', 'withdraw_enrollment',
+            
+            // Users (School level)
+            'view_any_user', 'view_user', 'create_user', 'update_user',
+            
+            // Settings (School level)
+            'view_settings', 'update_settings',
+            
+            // Reports
+            'generate_reports', 'export_reports', 'view_financial_reports',
+            
+            // Activity Logs
+            'view_any_activity_log', 'view_activity_log',
         ]);
+        $this->command->info('  ✓ school_admin: Full school management');
 
-        // 3. Panitia PPDB - Verification and scoring
-        $panitia = Role::firstOrCreate(['name' => 'panitia']);
-        $panitia->givePermissionTo([
+        // 3. ADMISSION ADMIN (Per School - Application Processing)
+        $this->command->info('  Creating: admission_admin...');
+        $admissionAdmin = Role::firstOrCreate(['name' => 'admission_admin']);
+        $admissionAdmin->givePermissionTo([
             'view_dashboard',
-            'view_statistics',
-            'view_academic_years',
-            'view_registration_periods',
-            'view_majors',
-            'view_registrations',
-            'verify_registrations',
-            'export_registrations',
-            'view_documents',
-            'verify_documents',
-            'view_payments',
-            'verify_payments',
-            'view_scores',
-            'input_scores',
-            'edit_scores',
-            'view_announcements',
-            'view_re_registrations',
-            'verify_re_registrations',
-            'view_reports',
+            
+            // Applications
+            'view_any_application', 'view_application', 'update_application', 'review_application',
+            'approve_application', 'reject_application', 'export_applications',
+            
+            // Documents
+            'view_any_document', 'view_document', 'verify_document', 'reject_document',
+            
+            // Schedules
+            'view_any_schedule', 'view_schedule', 'create_schedule', 'update_schedule', 'complete_schedule',
+            
+            // Medical Records
+            'view_any_medical_record', 'view_medical_record', 'create_medical_record', 'update_medical_record',
+            
+            // Enrollment
+            'view_any_enrollment', 'view_enrollment', 'create_enrollment',
+            
+            // Reports
+            'generate_reports', 'export_reports',
         ]);
+        $this->command->info('  ✓ admission_admin: Application & document management');
 
-        // 4. Calon Siswa - Limited to own data
-        $calonSiswa = Role::firstOrCreate(['name' => 'calon_siswa']);
-        $calonSiswa->givePermissionTo([
-            'view_registrations', // Own only
-            'create_registrations',
-            'edit_registrations', // Own only, when draft
-            'upload_documents',
-            'view_documents', // Own only
-            'view_payments', // Own only
-            'create_payments',
-            'view_announcements', // Own only
-            'view_re_registrations', // Own only
+        // 4. FINANCE ADMIN (Per School - Payment Processing)
+        $this->command->info('  Creating: finance_admin...');
+        $financeAdmin = Role::firstOrCreate(['name' => 'finance_admin']);
+        $financeAdmin->givePermissionTo([
+            'view_dashboard',
+            
+            // Applications (Read only)
+            'view_any_application', 'view_application',
+            
+            // Payment Types
+            'view_any_payment_type', 'view_payment_type', 'create_payment_type', 'update_payment_type',
+            
+            // Payments
+            'view_any_payment', 'view_payment', 'verify_payment', 'reject_payment', 'refund_payment', 'export_payments',
+            
+            // Enrollment (Payment related)
+            'view_any_enrollment', 'view_enrollment', 'update_enrollment',
+            
+            // Reports
+            'generate_reports', 'export_reports', 'view_financial_reports',
         ]);
+        $this->command->info('  ✓ finance_admin: Payment & financial management');
 
-        $this->command->info('Roles and Permissions created successfully!');
+        // 5. PARENT (No Panel Access - Via Public Form)
+        $this->command->info('  Creating: parent...');
+        $parent = Role::firstOrCreate(['name' => 'parent']);
+        $parent->givePermissionTo([
+            // Own applications only
+            'view_application',
+            'create_application',
+            'update_application', // Only when draft
+            
+            // Own documents
+            'view_document',
+            'upload_document',
+            
+            // Own payments
+            'view_payment',
+            'create_payment',
+            
+            // Own medical records
+            'view_medical_record',
+            'create_medical_record',
+            'update_medical_record',
+        ]);
+        $this->command->info('  ✓ parent: Self-service application access');
+
+        // ==================== SUMMARY ====================
+        
+        $this->command->newLine();
+        $this->command->info('════════════════════════════════════════');
+        $this->command->info('✅ ROLES & PERMISSIONS SEEDING COMPLETE');
+        $this->command->info('════════════════════════════════════════');
+        $this->command->table(
+            ['Role', 'Permissions', 'Access Level'],
+            [
+                ['super_admin', Permission::count(), 'Global (All Schools)'],
+                ['school_admin', $schoolAdmin->permissions->count(), 'School Level (Full)'],
+                ['admission_admin', $admissionAdmin->permissions->count(), 'School Level (Admission)'],
+                ['finance_admin', $financeAdmin->permissions->count(), 'School Level (Finance)'],
+                ['parent', $parent->permissions->count(), 'Limited (Own Data)'],
+            ]
+        );
+        $this->command->newLine();
+    }
+
+    private function count(array $items): int
+    {
+        return count($items);
     }
 }

@@ -1,45 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\AcademicYear;
+use App\Models\{School, AcademicYear};
+use Carbon\Carbon;
 
 class AcademicYearSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $academicYears = [
-            [
-                'name' => '2023/2024',
-                'start_year' => 2023,
-                'end_year' => 2024,
-                'is_active' => false,
-                'description' => 'Tahun Ajaran 2023/2024',
-            ],
-            [
-                'name' => '2024/2025',
+        $this->command->info('📅 Creating Academic Years...');
+        
+        $schools = School::all();
+        $created = 0;
+        
+        foreach ($schools as $school) {
+            AcademicYear::create([
+                'school_id' => $school->id,
+                'name' => '2024-2025',
                 'start_year' => 2024,
                 'end_year' => 2025,
+                'start_date' => Carbon::parse('2024-08-01'),
+                'end_date' => Carbon::parse('2025-06-30'),
                 'is_active' => true,
-                'description' => 'Tahun Ajaran 2024/2025 (Aktif)',
-            ],
-            [
-                'name' => '2025/2026',
-                'start_year' => 2025,
-                'end_year' => 2026,
-                'is_active' => false,
-                'description' => 'Tahun Ajaran 2025/2026',
-            ],
-        ];
-
-        foreach ($academicYears as $year) {
-            AcademicYear::create($year);
+                'description' => "Academic Year 2024-2025 for {$school->name}",
+            ]);
+            $created++;
+            $this->command->info("  ✓ {$school->code}: 2024-2025");
         }
-
-        $this->command->info('Academic Years created successfully!');
+        
+        $this->command->info("✅ Created {$created} academic years");
     }
 }

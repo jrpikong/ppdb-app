@@ -1,24 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Document Model
+ *
+ * @property int $id
+ * @property int $application_id
+ * @property string $type
+ * @property string $name
+ * @property string $file_path
+ * @property string $file_type
+ * @property int $file_size
+ * @property string|null $description
+ * @property string $status
+ * @property string|null $rejection_reason
+ * @property string|null $verification_notes
+ * @property int|null $verified_by
+ * @property Carbon|null $verified_at
+ */
 class Document extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    protected $table = 'documents';
+
     protected $fillable = [
-        'registration_id',
+        'application_id',
         'type',
         'name',
         'file_path',
@@ -27,178 +45,212 @@ class Document extends Model
         'description',
         'status',
         'rejection_reason',
+        'verification_notes',
         'verified_by',
         'verified_at',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'file_size' => 'integer',
-        'verified_at' => 'datetime',
-    ];
-
-    /**
-     * Boot the model.
-     */
-    protected static function boot()
+    protected function casts(): array
     {
-        parent::boot();
-
-        // Delete file when document is deleted
-        static::deleting(function ($document) {
-            if ($document->file_path && Storage::exists($document->file_path)) {
-                Storage::delete($document->file_path);
-            }
-        });
+        return [
+            'file_size' => 'integer',
+            'verified_at' => 'datetime',
+        ];
     }
 
-    /**
-     * Get the registration that owns this document.
-     */
-    public function registration(): BelongsTo
+    // ==================== RELATIONSHIPS ====================
+
+    public function application(): BelongsTo
     {
-        return $this->belongsTo(Registration::class);
+        return $this->belongsTo(Application::class);
     }
 
-    /**
-     * Get the user who verified this document.
-     */
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
 
-    /**
-     * Scope a query to only include pending documents.
-     */
-    public function scopePending($query)
+    // ==================== SCOPES ====================
+
+    public function scopePending(Builder $query): Builder
     {
         return $query->where('status', 'pending');
     }
 
-    /**
-     * Scope a query to only include approved documents.
-     */
-    public function scopeApproved($query)
+    public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', 'approved');
     }
 
-    /**
-     * Scope a query to only include rejected documents.
-     */
-    public function scopeRejected($query)
+    public function scopeRejected(Builder $query): Builder
     {
         return $query->where('status', 'rejected');
     }
 
-    /**
-     * Check if document is pending.
-     */
+    public function scopeNeedsResubmission(Builder $query): Builder
+    {
+        return $query->where('status', 'resubmit');
+    }
+
+    public function scopeByType(Builder $query, string $type): Builder
+    {
+        return $query->where('type', $type);
+    }
+
+    // ==================== ACCESSORS ====================
+
+    protected function typeLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => match($this->type) {
+                'student_photo_1' => 'Student Photo 1',
+                'student_photo_2' => 'Student Photo 2',
+                'father_photo' => 'Father Photo',
+                'mother_photo' => 'Mother Photo',
+                'guardian_photo' => 'Guardian Photo',
+                'father_id_card' => 'Father ID Card',
+                'mother_id_card' => 'Mother ID Card',
+                'guardian_id_card' => 'Guardian ID Card',
+                'birth_certificate' => 'Birth Certificate',
+                'family_card' => 'Family Card',
+                'passport' => 'Passport',
+                'latest_report_book' => 'Latest Report Book',
+                'previous_report_books' => 'Previous Report Books',
+                'recommendation_letter' => 'Recommendation Letter',
+                'transcript' => 'Academic Transcript',
+                'medical_history' => 'Medical History',
+                'special_needs_form' => 'Special Needs Form',
+                'immunization_record' => 'Immunization Record',
+                'other' => 'Other Document',
+                default => ucwords(str_replace('_', ' ', $this->type)),
+            }
+        );
+    }
+
+    protected function fileUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => Storage::url($this->file_path)
+        );
+    }
+
+    protected function formattedSize(): Attribute
+    {
+        return Attribute::make(
+            get: function() {
+                $bytes = $this->file_size;
+
+                if ($bytes >= 1073741824) {
+                    return number_format($bytes / 1073741824, 2) . ' GB';
+                } elseif ($bytes >= 1048576) {
+                    return number_format($bytes / 1048576, 2) . ' MB';
+                } elseif ($bytes >= 1024) {
+                    return number_format($bytes / 1024, 2) . ' KB';
+                }
+                return $bytes . ' bytes';
+            }
+        );
+    }
+
+    protected function statusLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => match($this->status) {
+                'pending' => 'Pending',
+                'approved' => 'Approved',
+                'rejected' => 'Rejected',
+                'resubmit' => 'Needs Resubmission',
+                default => ucfirst($this->status),
+            }
+        );
+    }
+
+    protected function statusColor(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => match($this->status) {
+                'pending' => 'yellow',
+                'approved' => 'green',
+                'rejected' => 'red',
+                'resubmit' => 'orange',
+                default => 'gray',
+            }
+        );
+    }
+
+    // ==================== HELPER METHODS ====================
+
     public function isPending(): bool
     {
         return $this->status === 'pending';
     }
 
-    /**
-     * Check if document is approved.
-     */
     public function isApproved(): bool
     {
         return $this->status === 'approved';
     }
 
-    /**
-     * Check if document is rejected.
-     */
     public function isRejected(): bool
     {
         return $this->status === 'rejected';
     }
 
-    /**
-     * Get document type label.
-     */
-    public function getTypeLabelAttribute(): string
+    public function needsResubmission(): bool
     {
-        return match($this->type) {
-            'foto_siswa' => 'Foto Siswa (3x4)',
-            'kartu_keluarga' => 'Kartu Keluarga',
-            'akta_kelahiran' => 'Akta Kelahiran',
-            'ijazah' => 'Ijazah/SKHUN',
-            'kartu_indonesia_pintar' => 'Kartu Indonesia Pintar (KIP)',
-            'rapor_semester_1' => 'Rapor Semester 1',
-            'rapor_semester_2' => 'Rapor Semester 2',
-            'rapor_semester_3' => 'Rapor Semester 3',
-            'rapor_semester_4' => 'Rapor Semester 4',
-            'rapor_semester_5' => 'Rapor Semester 5',
-            'surat_keterangan_lulus' => 'Surat Keterangan Lulus',
-            'sertifikat_prestasi' => 'Sertifikat Prestasi',
-            'other' => 'Dokumen Lainnya',
-            default => $this->type,
-        };
+        return $this->status === 'resubmit';
     }
 
-    /**
-     * Get file URL.
-     */
-    public function getFileUrlAttribute(): string
-    {
-        if (!$this->file_path) {
-            return '';
-        }
-        
-        return Storage::url($this->file_path);
-    }
-
-    /**
-     * Get formatted file size.
-     */
-    public function getFormattedSizeAttribute(): string
-    {
-        $bytes = $this->file_size;
-        
-        if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
-        } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
-        } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
-        } else {
-            return $bytes . ' bytes';
-        }
-    }
-
-    /**
-     * Get status badge color.
-     */
-    public function getStatusColorAttribute(): string
-    {
-        return match($this->status) {
-            'pending' => 'yellow',
-            'approved' => 'green',
-            'rejected' => 'red',
-            default => 'gray',
-        };
-    }
-
-    /**
-     * Check if file is an image.
-     */
     public function isImage(): bool
     {
         return str_starts_with($this->file_type, 'image/');
     }
 
-    /**
-     * Check if file is a PDF.
-     */
     public function isPdf(): bool
     {
         return $this->file_type === 'application/pdf';
+    }
+
+    public function approve(int $userId, ?string $notes = null): bool
+    {
+        $this->status = 'approved';
+        $this->verified_by = $userId;
+        $this->verified_at = now();
+        $this->verification_notes = $notes;
+
+        return $this->save();
+    }
+
+    public function reject(int $userId, string $reason, ?string $notes = null): bool
+    {
+        $this->status = 'rejected';
+        $this->verified_by = $userId;
+        $this->verified_at = now();
+        $this->rejection_reason = $reason;
+        $this->verification_notes = $notes;
+
+        return $this->save();
+    }
+
+    public function requestResubmission(int $userId, string $reason): bool
+    {
+        $this->status = 'resubmit';
+        $this->verified_by = $userId;
+        $this->verified_at = now();
+        $this->rejection_reason = $reason;
+
+        return $this->save();
+    }
+
+    // ==================== BOOT METHOD ====================
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::deleting(function (Document $document) {
+            if ($document->file_path && Storage::exists($document->file_path)) {
+                Storage::delete($document->file_path);
+            }
+        });
     }
 }

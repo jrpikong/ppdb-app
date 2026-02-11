@@ -1,191 +1,284 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
 
+/**
+ * Setting Model (Singleton)
+ *
+ * System-wide configuration
+ *
+ * @property int $id
+ * @property int|null $school_id
+ * @property bool $multi_school_enabled
+ * @property int|null $default_school_id
+ * @property string|null $system_name
+ * @property string|null $system_logo
+ * @property string|null $system_favicon
+ * @property string|null $admin_email
+ * @property string|null $support_email
+ * @property string|null $contact_phone
+ * @property bool $maintenance_mode
+ * @property string|null $maintenance_message
+ * @property bool $allow_registration
+ * @property bool $require_email_verification
+ * @property string $default_timezone
+ * @property string $default_currency
+ * @property string $default_language
+ * @property bool $email_notifications_enabled
+ * @property string|null $email_from_address
+ * @property string|null $email_from_name
+ * @property bool $sms_notifications_enabled
+ * @property string|null $sms_gateway
+ * @property array|null $payment_gateways
+ * @property array|null $admission_settings
+ * @property array|null $email_templates
+ * @property array|null $custom_settings
+ */
 class Setting extends Model
 {
-    use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    protected $table = 'settings';
+
     protected $fillable = [
-        'school_name',
-        'school_nsm',
-        'school_npsn',
-        'school_level',
-        'school_status',
-        'school_phone',
-        'school_email',
-        'school_website',
-        'school_address',
-        'school_province',
-        'school_regency',
-        'school_district',
-        'school_village',
-        'school_postal_code',
-        'school_logo',
-        'school_header_image',
-        'school_description',
-        'school_vision',
-        'school_mission',
-        'principal_name',
-        'principal_nip',
-        'principal_signature',
-        'registration_open',
-        'registration_info',
-        'min_age',
-        'max_age',
-        'email_notification_enabled',
+        'school_id',
+        'multi_school_enabled',
+        'default_school_id',
+        'system_name',
+        'system_logo',
+        'system_favicon',
+        'admin_email',
+        'support_email',
+        'contact_phone',
+        'maintenance_mode',
+        'maintenance_message',
+        'allow_registration',
+        'require_email_verification',
+        'default_timezone',
+        'default_currency',
+        'default_language',
+        'email_notifications_enabled',
         'email_from_address',
         'email_from_name',
-        'extra_settings',
+        'sms_notifications_enabled',
+        'sms_gateway',
+        'payment_gateways',
+        'admission_settings',
+        'email_templates',
+        'custom_settings',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'registration_open' => 'boolean',
-        'min_age' => 'integer',
-        'max_age' => 'integer',
-        'email_notification_enabled' => 'boolean',
-        'extra_settings' => 'array',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'multi_school_enabled' => 'boolean',
+            'maintenance_mode' => 'boolean',
+            'allow_registration' => 'boolean',
+            'require_email_verification' => 'boolean',
+            'email_notifications_enabled' => 'boolean',
+            'sms_notifications_enabled' => 'boolean',
+            'payment_gateways' => 'array',
+            'admission_settings' => 'array',
+            'email_templates' => 'array',
+            'custom_settings' => 'array',
+            'allowed_file_types' => 'array',
+            'required_documents' => 'array',
+            'extra_settings' => 'array',
 
-    /**
-     * Get the singleton instance of settings.
-     */
+        ];
+    }
+
+    // ==================== RELATIONSHIPS ====================
+
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
+
+    public function defaultSchool(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'default_school_id');
+    }
+
+    // ==================== SINGLETON PATTERN ====================
+
     public static function getInstance(): self
     {
         $settings = static::first();
-        
+
         if (!$settings) {
             $settings = static::create([
-                'school_name' => 'MTS NEGERI 1 WONOGIRI',
-                'school_level' => 'SMP/MTS',
-                'school_status' => 'negeri',
-                'registration_open' => true,
-                'min_age' => 12,
-                'max_age' => 18,
-                'email_notification_enabled' => true,
+                'system_name' => 'VIS Admission System',
+                'multi_school_enabled' => false,
+                'allow_registration' => true,
+                'require_email_verification' => true,
+                'default_timezone' => 'Asia/Jakarta',
+                'default_currency' => 'IDR',
+                'default_language' => 'en',
+                'email_notifications_enabled' => true,
+                'maintenance_mode' => false,
             ]);
         }
-        
+
         return $settings;
     }
 
-    /**
-     * Get a setting value by key.
-     */
+    // ==================== ACCESSORS ====================
+
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->system_logo
+                ? Storage::url($this->system_logo)
+                : asset('images/default-logo.png')
+        );
+    }
+
+    protected function faviconUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->system_favicon
+                ? Storage::url($this->system_favicon)
+                : asset('images/default-favicon.png')
+        );
+    }
+
+    // ==================== STATIC GETTERS/SETTERS ====================
+
     public static function get(string $key, mixed $default = null): mixed
     {
         $settings = static::getInstance();
         return $settings->$key ?? $default;
     }
 
-    /**
-     * Set a setting value.
-     */
-    public static function set(string $key, mixed $value): void
+    public static function set(string $key, mixed $value): bool
     {
         $settings = static::getInstance();
         $settings->$key = $value;
-        $settings->save();
+        return $settings->save();
     }
 
-    /**
-     * Get school logo URL.
-     */
-    public function getLogoUrlAttribute(): ?string
+    public static function isMultiSchoolEnabled(): bool
     {
-        if (!$this->school_logo) {
-            return null;
-        }
-        
-        return \Storage::url($this->school_logo);
+        return static::get('multi_school_enabled', false);
     }
 
-    /**
-     * Get header image URL.
-     */
-    public function getHeaderImageUrlAttribute(): ?string
+    public static function isMaintenanceMode(): bool
     {
-        if (!$this->school_header_image) {
-            return null;
-        }
-        
-        return \Storage::url($this->school_header_image);
+        return static::get('maintenance_mode', false);
     }
 
-    /**
-     * Get principal signature URL.
-     */
-    public function getSignatureUrlAttribute(): ?string
+    public static function allowsRegistration(): bool
     {
-        if (!$this->principal_signature) {
-            return null;
-        }
-        
-        return \Storage::url($this->principal_signature);
+        return static::get('allow_registration', true);
     }
 
-    /**
-     * Get full school address.
-     */
-    public function getFullAddressAttribute(): string
+    public static function requiresEmailVerification(): bool
     {
-        $parts = array_filter([
-            $this->school_address,
-            $this->school_village,
-            $this->school_district,
-            $this->school_regency,
-            $this->school_province,
-            $this->school_postal_code,
-        ]);
-
-        return implode(', ', $parts);
+        return static::get('require_email_verification', true);
     }
 
-    /**
-     * Check if registration is open.
-     */
-    public function isRegistrationOpen(): bool
+    public static function emailNotificationsEnabled(): bool
     {
-        return $this->registration_open;
+        return static::get('email_notifications_enabled', true);
     }
 
-    /**
-     * Check if email notifications are enabled.
-     */
-    public function emailNotificationsEnabled(): bool
+    public static function smsNotificationsEnabled(): bool
     {
-        return $this->email_notification_enabled;
+        return static::get('sms_notifications_enabled', false);
     }
 
-    /**
-     * Get extra setting value by key.
-     */
-    public function getExtra(string $key, mixed $default = null): mixed
+    // ==================== ADMISSION SETTINGS ====================
+
+    public function getAdmissionSetting(string $key, mixed $default = null): mixed
     {
-        return $this->extra_settings[$key] ?? $default;
+        return $this->admission_settings[$key] ?? $default;
     }
 
-    /**
-     * Set extra setting value.
-     */
-    public function setExtra(string $key, mixed $value): void
+    public function setAdmissionSetting(string $key, mixed $value): bool
     {
-        $extras = $this->extra_settings ?? [];
-        $extras[$key] = $value;
-        $this->extra_settings = $extras;
-        $this->save();
+        $settings = $this->admission_settings ?? [];
+        $settings[$key] = $value;
+        $this->admission_settings = $settings;
+        return $this->save();
+    }
+
+    // ==================== EMAIL TEMPLATES ====================
+
+    public function getEmailTemplate(string $name): ?array
+    {
+        return $this->email_templates[$name] ?? null;
+    }
+
+    public function setEmailTemplate(string $name, array $template): bool
+    {
+        $templates = $this->email_templates ?? [];
+        $templates[$name] = $template;
+        $this->email_templates = $templates;
+        return $this->save();
+    }
+
+    // ==================== PAYMENT GATEWAYS ====================
+
+    public function getActivePaymentGateways(): array
+    {
+        if (!$this->payment_gateways) return [];
+
+        return array_filter($this->payment_gateways, fn($gateway) => $gateway['enabled'] ?? false);
+    }
+
+    public function isPaymentGatewayEnabled(string $gateway): bool
+    {
+        return ($this->payment_gateways[$gateway]['enabled'] ?? false);
+    }
+
+    // ==================== CUSTOM SETTINGS ====================
+
+    public function getCustom(string $key, mixed $default = null): mixed
+    {
+        return $this->custom_settings[$key] ?? $default;
+    }
+
+    public function setCustom(string $key, mixed $value): bool
+    {
+        $customs = $this->custom_settings ?? [];
+        $customs[$key] = $value;
+        $this->custom_settings = $customs;
+        return $this->save();
+    }
+
+    // ==================== HELPER METHODS ====================
+
+    public function enableMaintenanceMode(string $message = 'System is under maintenance'): bool
+    {
+        $this->maintenance_mode = true;
+        $this->maintenance_message = $message;
+        return $this->save();
+    }
+
+    public function disableMaintenanceMode(): bool
+    {
+        $this->maintenance_mode = false;
+        $this->maintenance_message = null;
+        return $this->save();
+    }
+
+    public function enableMultiSchool(): bool
+    {
+        $this->multi_school_enabled = true;
+        return $this->save();
+    }
+
+    public function disableMultiSchool(): bool
+    {
+        $this->multi_school_enabled = false;
+        return $this->save();
     }
 }

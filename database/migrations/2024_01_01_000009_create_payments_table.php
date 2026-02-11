@@ -13,38 +13,52 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('registration_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('application_id')->constrained()->cascadeOnDelete();
             $table->foreignId('payment_type_id')->constrained()->cascadeOnDelete();
             
-            // Transaction Info
-            $table->string('transaction_code')->unique(); // Auto generated: 202307170001
-            $table->decimal('amount', 12, 2); // Jumlah yang dibayar
-            $table->date('payment_date'); // Tanggal bayar
-            $table->string('payment_method')->nullable(); // Transfer, Cash, dll
+            // Transaction Information
+            $table->string('transaction_code')->unique(); // VIS-PAY-20240101-0001
+            $table->decimal('amount', 15, 2); // Amount paid
+            $table->string('currency', 3)->default('IDR');
+            
+            // Payment Details
+            $table->date('payment_date'); // Date of payment
+            $table->string('payment_method')->nullable(); // Bank Transfer, Credit Card, etc.
+            $table->string('bank_name')->nullable();
+            $table->string('account_number')->nullable();
+            $table->string('reference_number')->nullable(); // Bank reference number
             
             // Proof of Payment
-            $table->string('proof_file')->nullable(); // Bukti pembayaran (foto)
+            $table->string('proof_file')->nullable(); // Uploaded proof image/PDF
             
-            // Verification
+            // Status
             $table->enum('status', [
-                'pending', // Belum dibayar
-                'waiting_verification', // Proses cek
-                'verified', // Sudah lunas/verified
-                'rejected' // Ditolak
+                'pending',              // Payment not yet made
+                'submitted',            // Proof uploaded, awaiting verification
+                'verified',             // Verified by finance admin
+                'rejected',             // Rejected (wrong amount, unclear proof, etc.)
+                'refunded'              // Payment refunded
             ])->default('pending');
             
             $table->text('rejection_reason')->nullable();
-            $table->text('notes')->nullable();
+            $table->text('notes')->nullable(); // Admin notes
             
+            // Verification
             $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('verified_at')->nullable();
+            
+            // Refund (if applicable)
+            $table->decimal('refund_amount', 15, 2)->nullable();
+            $table->date('refund_date')->nullable();
+            $table->text('refund_reason')->nullable();
             
             $table->timestamps();
             $table->softDeletes();
             
             // Indexes
             $table->index('transaction_code');
-            $table->index(['registration_id', 'status']);
+            $table->index(['application_id', 'status']);
+            $table->index(['application_id', 'payment_type_id']);
         });
     }
 

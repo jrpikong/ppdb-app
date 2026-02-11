@@ -1,218 +1,258 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Payment Model
+ *
+ * @property int $id
+ * @property int $application_id
+ * @property int $payment_type_id
+ * @property string $transaction_code
+ * @property float $amount
+ * @property string $currency
+ * @property Carbon $payment_date
+ * @property string|null $payment_method
+ * @property string|null $bank_name
+ * @property string|null $account_number
+ * @property string|null $reference_number
+ * @property string|null $proof_file
+ * @property string $status
+ * @property string|null $rejection_reason
+ * @property string|null $notes
+ * @property int|null $verified_by
+ * @property Carbon|null $verified_at
+ * @property float|null $refund_amount
+ * @property Carbon|null $refund_date
+ * @property string|null $refund_reason
+ */
 class Payment extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    protected $table = 'payments';
+
     protected $fillable = [
-        'registration_id',
+        'application_id',
         'payment_type_id',
         'transaction_code',
         'amount',
+        'currency',
         'payment_date',
         'payment_method',
+        'bank_name',
+        'account_number',
+        'reference_number',
         'proof_file',
         'status',
         'rejection_reason',
         'notes',
         'verified_by',
         'verified_at',
+        'refund_amount',
+        'refund_date',
+        'refund_reason',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'amount' => 'decimal:2',
-        'payment_date' => 'date',
-        'verified_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'decimal:2',
+            'payment_date' => 'date',
+            'verified_at' => 'datetime',
+            'refund_amount' => 'decimal:2',
+            'refund_date' => 'date',
+        ];
+    }
 
-    /**
-     * Boot the model.
-     */
-    protected static function boot()
+    // ==================== RELATIONSHIPS ====================
+
+    public function application(): BelongsTo
+    {
+        return $this->belongsTo(Application::class);
+    }
+
+    public function paymentType(): BelongsTo
+    {
+        return $this->belongsTo(PaymentType::class);
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    // ==================== SCOPES ====================
+
+    public function scopePending(Builder $query): Builder
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeSubmitted(Builder $query): Builder
+    {
+        return $query->where('status', 'submitted');
+    }
+
+    public function scopeVerified(Builder $query): Builder
+    {
+        return $query->where('status', 'verified');
+    }
+
+    public function scopeRejected(Builder $query): Builder
+    {
+        return $query->where('status', 'rejected');
+    }
+
+    public function scopeRefunded(Builder $query): Builder
+    {
+        return $query->where('status', 'refunded');
+    }
+
+    // ==================== ACCESSORS ====================
+
+    protected function formattedAmount(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->currency . ' ' . number_format($this->amount, 2, '.', ',')
+        );
+    }
+
+    protected function proofUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->proof_file ? Storage::url($this->proof_file) : null
+        );
+    }
+
+    protected function statusLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => match($this->status) {
+                'pending' => 'Pending',
+                'submitted' => 'Awaiting Verification',
+                'verified' => 'Verified',
+                'rejected' => 'Rejected',
+                'refunded' => 'Refunded',
+                default => ucfirst($this->status),
+            }
+        );
+    }
+
+    protected function statusColor(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => match($this->status) {
+                'pending' => 'gray',
+                'submitted' => 'yellow',
+                'verified' => 'green',
+                'rejected' => 'red',
+                'refunded' => 'blue',
+                default => 'gray',
+            }
+        );
+    }
+
+    // ==================== HELPER METHODS ====================
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isSubmitted(): bool
+    {
+        return $this->status === 'submitted';
+    }
+
+    public function isVerified(): bool
+    {
+        return $this->status === 'verified';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
+
+    public function isRefunded(): bool
+    {
+        return $this->status === 'refunded';
+    }
+
+    public function canBeVerified(): bool
+    {
+        return $this->isSubmitted() && $this->proof_file;
+    }
+
+    public function verify(int $userId, ?string $notes = null): bool
+    {
+        $this->status = 'verified';
+        $this->verified_by = $userId;
+        $this->verified_at = now();
+        $this->notes = $notes;
+
+        return $this->save();
+    }
+
+    public function reject(int $userId, string $reason): bool
+    {
+        $this->status = 'rejected';
+        $this->verified_by = $userId;
+        $this->verified_at = now();
+        $this->rejection_reason = $reason;
+
+        return $this->save();
+    }
+
+    public function refund(float $amount, string $reason): bool
+    {
+        $this->status = 'refunded';
+        $this->refund_amount = $amount;
+        $this->refund_date = now();
+        $this->refund_reason = $reason;
+
+        return $this->save();
+    }
+
+    // ==================== BOOT METHOD ====================
+
+    protected static function boot(): void
     {
         parent::boot();
 
-        // Auto-generate transaction code before creating
-        static::creating(function ($payment) {
-            if (!$payment->transaction_code) {
-                $payment->transaction_code = static::generateTransactionCode();
+        static::creating(function (Payment $payment) {
+            if (empty($payment->transaction_code)) {
+                $payment->transaction_code = $payment->generateTransactionCode();
             }
         });
 
-        // Delete proof file when payment is deleted
-        static::deleting(function ($payment) {
+        static::deleting(function (Payment $payment) {
             if ($payment->proof_file && Storage::exists($payment->proof_file)) {
                 Storage::delete($payment->proof_file);
             }
         });
     }
 
-    /**
-     * Generate unique transaction code.
-     */
-    public static function generateTransactionCode(): string
+    public function generateTransactionCode(): string
     {
         $date = now()->format('Ymd');
-        $lastPayment = static::whereDate('created_at', today())
-            ->latest('id')
-            ->first();
-        
-        $sequence = $lastPayment ? (int) substr($lastPayment->transaction_code, -4) + 1 : 1;
-        
-        return $date . str_pad($sequence, 4, '0', STR_PAD_LEFT);
-    }
+        $school = $this->application?->school ?? School::find($this->application?->school_id);
+        $schoolCode = $school?->code ?? 'VIS';
 
-    /**
-     * Get the registration that owns this payment.
-     */
-    public function registration(): BelongsTo
-    {
-        return $this->belongsTo(Registration::class);
-    }
+        $lastPayment = static::whereDate('created_at', today())->latest('id')->first();
+        $sequence = $lastPayment ? ((int) substr($lastPayment->transaction_code, -4)) + 1 : 1;
 
-    /**
-     * Get the payment type.
-     */
-    public function paymentType(): BelongsTo
-    {
-        return $this->belongsTo(PaymentType::class);
-    }
-
-    /**
-     * Get the verifier (user who verified this payment).
-     */
-    public function verifier(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'verified_by');
-    }
-
-    /**
-     * Scope a query to only include pending payments.
-     */
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
-    }
-
-    /**
-     * Scope a query to only include payments waiting verification.
-     */
-    public function scopeWaitingVerification($query)
-    {
-        return $query->where('status', 'waiting_verification');
-    }
-
-    /**
-     * Scope a query to only include verified payments.
-     */
-    public function scopeVerified($query)
-    {
-        return $query->where('status', 'verified');
-    }
-
-    /**
-     * Scope a query to only include rejected payments.
-     */
-    public function scopeRejected($query)
-    {
-        return $query->where('status', 'rejected');
-    }
-
-    /**
-     * Check if payment is pending.
-     */
-    public function isPending(): bool
-    {
-        return $this->status === 'pending';
-    }
-
-    /**
-     * Check if payment is waiting verification.
-     */
-    public function isWaitingVerification(): bool
-    {
-        return $this->status === 'waiting_verification';
-    }
-
-    /**
-     * Check if payment is verified.
-     */
-    public function isVerified(): bool
-    {
-        return $this->status === 'verified';
-    }
-
-    /**
-     * Check if payment is rejected.
-     */
-    public function isRejected(): bool
-    {
-        return $this->status === 'rejected';
-    }
-
-    /**
-     * Get formatted amount.
-     */
-    public function getFormattedAmountAttribute(): string
-    {
-        return 'Rp ' . number_format($this->amount, 0, ',', '.');
-    }
-
-    /**
-     * Get proof file URL.
-     */
-    public function getProofUrlAttribute(): ?string
-    {
-        if (!$this->proof_file) {
-            return null;
-        }
-        
-        return Storage::url($this->proof_file);
-    }
-
-    /**
-     * Get status badge color.
-     */
-    public function getStatusColorAttribute(): string
-    {
-        return match($this->status) {
-            'pending' => 'gray',
-            'waiting_verification' => 'yellow',
-            'verified' => 'green',
-            'rejected' => 'red',
-            default => 'gray',
-        };
-    }
-
-    /**
-     * Get status label.
-     */
-    public function getStatusLabelAttribute(): string
-    {
-        return match($this->status) {
-            'pending' => 'Belum Dibayar',
-            'waiting_verification' => 'Proses Cek',
-            'verified' => 'Sudah Lunas',
-            'rejected' => 'Ditolak',
-            default => $this->status,
-        };
+        return "{$schoolCode}-PAY-{$date}-" . str_pad((string)$sequence, 4, '0', STR_PAD_LEFT);
     }
 }

@@ -15,17 +15,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             
-            // Activity Info
-            $table->string('log_name')->nullable(); // registration, payment, verification, etc
+            // Activity Information
+            $table->string('log_name')->nullable(); // application, payment, verification, etc.
             $table->text('description');
-            $table->string('subject_type')->nullable(); // Model class
+            $table->string('subject_type')->nullable(); // Model class name
             $table->unsignedBigInteger('subject_id')->nullable(); // Model ID
-            $table->string('event')->nullable(); // created, updated, deleted
+            $table->string('event')->nullable(); // created, updated, deleted, status_changed
             
             // Changes
-            $table->json('properties')->nullable(); // Old & new values
+            $table->json('properties')->nullable(); // Old & new values, metadata
             
-            // Request Info
+            // Request Information
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             
@@ -35,6 +35,7 @@ return new class extends Migration
             $table->index('log_name');
             $table->index(['subject_type', 'subject_id']);
             $table->index('user_id');
+            $table->index('created_at');
         });
     }
 

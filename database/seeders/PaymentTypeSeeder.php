@@ -1,125 +1,147 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\PaymentType;
+use App\Models\{School, PaymentType};
+use Illuminate\Support\Facades\DB;
 
 class PaymentTypeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
+        $this->command->info('💰 Creating Payment Types...');
+        
+        $schools = School::all();
+        $created = 0;
+        
         $paymentTypes = [
             [
-                'code' => '001',
-                'name' => 'Biaya Pendaftaran',
-                'description' => 'Biaya pendaftaran PPDB (non-refundable)',
-                'amount' => 200000,
+                'code' => 'SAVING_SEAT',
+                'name' => 'Saving Seat Payment',
+                'description' => 'Non-refundable payment to secure your child\'s place in the admission process. Required before application submission.',
+                'amount' => 2500000,
+                'payment_stage' => 'pre_submission',
                 'is_mandatory' => true,
+                'is_refundable' => false,
                 'is_active' => true,
-                'payment_instructions' => '<h4>Cara Pembayaran:</h4>
-<ol>
-<li>Transfer ke rekening BNI 1234567890 a/n MTS Negeri 1 Wonogiri</li>
-<li>Simpan bukti transfer</li>
-<li>Upload bukti transfer pada sistem</li>
-<li>Tunggu verifikasi dari panitia (maksimal 2x24 jam)</li>
-</ol>
-<p><strong>Catatan:</strong> Biaya pendaftaran tidak dapat dikembalikan.</p>',
-                'bank_name' => 'Bank BNI',
-                'account_number' => '1234567890',
-                'account_holder' => 'MTS Negeri 1 Wonogiri',
             ],
             [
-                'code' => '002',
-                'name' => 'Seragam',
-                'description' => 'Paket seragam lengkap (putih-putih, batik, olahraga, pramuka)',
-                'amount' => 1000000,
+                'code' => 'REGISTRATION',
+                'name' => 'Registration Fee',
+                'description' => 'One-time registration fee for new students. Covers administrative processing and student records setup.',
+                'amount' => 5000000,
+                'payment_stage' => 'post_acceptance',
                 'is_mandatory' => true,
+                'is_refundable' => false,
                 'is_active' => true,
-                'payment_instructions' => '<h4>Rincian Paket Seragam:</h4>
-<ul>
-<li>2 stel seragam putih-putih</li>
-<li>2 stel seragam batik</li>
-<li>1 stel seragam olahraga</li>
-<li>1 stel seragam pramuka</li>
-<li>2 peci/jilbab</li>
-<li>1 ikat pinggang</li>
-<li>1 dasi</li>
-</ul>
-<p>Transfer ke rekening BNI 1234567890 a/n MTS Negeri 1 Wonogiri</p>',
-                'bank_name' => 'Bank BNI',
-                'account_number' => '1234567890',
-                'account_holder' => 'MTS Negeri 1 Wonogiri',
             ],
             [
-                'code' => '003',
-                'name' => 'Topi',
-                'description' => 'Topi sekolah',
-                'amount' => 20000,
+                'code' => 'DEVELOPMENT',
+                'name' => 'Development Fee',
+                'description' => 'Annual development fee supporting school facilities, infrastructure improvements, and educational programs.',
+                'amount' => 10000000,
+                'payment_stage' => 'post_acceptance',
+                'is_mandatory' => true,
+                'is_refundable' => false,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'UNIFORM',
+                'name' => 'Uniform Package',
+                'description' => 'Complete uniform set including PE attire, formal wear, and school accessories.',
+                'amount' => 3500000,
+                'payment_stage' => 'enrollment',
+                'is_mandatory' => true,
+                'is_refundable' => false,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'BOOKS',
+                'name' => 'Book Package',
+                'description' => 'Complete set of textbooks, workbooks, and learning materials for the academic year.',
+                'amount' => 4000000,
+                'payment_stage' => 'enrollment',
+                'is_mandatory' => true,
+                'is_refundable' => false,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'TECHNOLOGY',
+                'name' => 'Technology Fee',
+                'description' => 'Annual fee for technology infrastructure, digital learning platforms, and IT support.',
+                'amount' => 2000000,
+                'payment_stage' => 'enrollment',
                 'is_mandatory' => false,
+                'is_refundable' => false,
                 'is_active' => true,
-                'payment_instructions' => '<p>Transfer ke rekening BNI 1234567890 a/n MTS Negeri 1 Wonogiri</p>',
-                'bank_name' => 'Bank BNI',
-                'account_number' => '1234567890',
-                'account_holder' => 'MTS Negeri 1 Wonogiri',
-            ],
-            [
-                'code' => '004',
-                'name' => 'Buku Paket',
-                'description' => 'Paket buku pelajaran semester 1',
-                'amount' => 500000,
-                'is_mandatory' => true,
-                'is_active' => true,
-                'payment_instructions' => '<h4>Paket Buku Pelajaran:</h4>
-<ul>
-<li>Buku Al-Quran Hadist</li>
-<li>Buku Akidah Akhlak</li>
-<li>Buku Fiqih</li>
-<li>Buku Bahasa Arab</li>
-<li>Buku Matematika</li>
-<li>Buku IPA</li>
-<li>Buku IPS</li>
-<li>Buku Bahasa Indonesia</li>
-<li>Buku Bahasa Inggris</li>
-</ul>
-<p>Transfer ke rekening BNI 1234567890 a/n MTS Negeri 1 Wonogiri</p>',
-                'bank_name' => 'Bank BNI',
-                'account_number' => '1234567890',
-                'account_holder' => 'MTS Negeri 1 Wonogiri',
-            ],
-            [
-                'code' => '005',
-                'name' => 'Daftar Ulang',
-                'description' => 'Biaya daftar ulang siswa baru',
-                'amount' => 300000,
-                'is_mandatory' => true,
-                'is_active' => true,
-                'payment_instructions' => '<h4>Biaya Daftar Ulang Meliputi:</h4>
-<ul>
-<li>Biaya administrasi</li>
-<li>Kartu pelajar</li>
-<li>ID Card</li>
-<li>Buku penghubung</li>
-<li>Materai</li>
-</ul>
-<p>Transfer ke rekening BNI 1234567890 a/n MTS Negeri 1 Wonogiri</p>
-<p><strong>Penting:</strong> Pembayaran daftar ulang dilakukan setelah pengumuman kelulusan.</p>',
-                'bank_name' => 'Bank BNI',
-                'account_number' => '1234567890',
-                'account_holder' => 'MTS Negeri 1 Wonogiri',
             ],
         ];
-
-        foreach ($paymentTypes as $type) {
-            PaymentType::create($type);
+        
+        DB::beginTransaction();
+        
+        try {
+            foreach ($schools as $school) {
+                foreach ($paymentTypes as $type) {
+                    PaymentType::create(array_merge($type, [
+                        'school_id' => $school->id,
+                        'bank_info' => [
+                            'bank_name' => 'Bank Mandiri',
+                            'account_number' => '137-0012345678-9',
+                            'account_holder' => 'PT Veritas Intercultural School',
+                            'swift_code' => 'BMRIIDJA',
+                            'branch' => $school->city,
+                        ],
+                        'payment_instructions' => $this->getInstructions($type['name']),
+                    ]));
+                    $created++;
+                }
+                
+                $this->command->info("  ✓ {$school->code}: 6 payment types created");
+            }
+            
+            DB::commit();
+            
+            // Summary
+            $this->command->newLine();
+            $this->command->info('════════════════════════════════════════');
+            $this->command->info('✅ PAYMENT TYPES SEEDING COMPLETE');
+            $this->command->info('════════════════════════════════════════');
+            $this->command->table(
+                ['Stage', 'Type', 'Amount (IDR)', 'Mandatory'],
+                [
+                    ['Pre-Submission', 'Saving Seat', '2,500,000', 'Yes'],
+                    ['Post-Acceptance', 'Registration', '5,000,000', 'Yes'],
+                    ['Post-Acceptance', 'Development', '10,000,000', 'Yes'],
+                    ['Enrollment', 'Uniform', '3,500,000', 'Yes'],
+                    ['Enrollment', 'Books', '4,000,000', 'Yes'],
+                    ['Enrollment', 'Technology', '2,000,000', 'No'],
+                ]
+            );
+            $this->command->info("Total Payment Types: {$created}");
+            $this->command->info("Mandatory Total: IDR 25,000,000 per student");
+            $this->command->newLine();
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->command->error("✗ Error: {$e->getMessage()}");
+            throw $e;
         }
-
-        $this->command->info('Payment Types created successfully!');
-        $this->command->info('Total mandatory payment: Rp ' . number_format(
-            collect($paymentTypes)->where('is_mandatory', true)->sum('amount'), 0, ',', '.'
-        ));
+    }
+    
+    private function getInstructions(string $name): string
+    {
+        return <<<HTML
+<h3>Payment Instructions for {$name}</h3>
+<ol>
+    <li>Make a bank transfer to the account details provided</li>
+    <li>Use your application number as the transfer reference</li>
+    <li>Upload clear photo/scan of the payment receipt</li>
+    <li>Wait for verification (typically within 1-2 business days)</li>
+</ol>
+<p><strong>Note:</strong> Payment verification is required before proceeding to the next stage.</p>
+HTML;
     }
 }

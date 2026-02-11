@@ -14,51 +14,48 @@ return new class extends Migration
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
             
-            // School Information
-            $table->string('school_name')->default('MTS NEGERI 1 WONOGIRI');
-            $table->string('school_nsm')->nullable(); // NSM: 121133120001
-            $table->string('school_npsn')->nullable(); // NPSN: 20363813
-            $table->string('school_level')->default('SMP/MTS'); // Jenjang sekolah
-            $table->enum('school_status', ['negeri', 'swasta'])->default('negeri');
+            // System Information
+            $table->string('app_name')->default('VIS Admission System');
+            $table->string('app_version')->default('1.0.0');
             
-            // Contact
-            $table->string('school_phone')->nullable();
-            $table->string('school_email')->nullable();
-            $table->string('school_website')->nullable();
+            // Multi-School Settings
+            $table->boolean('multi_school_enabled')->default(false);
+            $table->foreignId('default_school_id')->nullable()->constrained('schools')->nullOnDelete();
             
-            // Address
-            $table->text('school_address')->nullable();
-            $table->string('school_province')->nullable();
-            $table->string('school_regency')->nullable();
-            $table->string('school_district')->nullable();
-            $table->string('school_village')->nullable();
-            $table->string('school_postal_code')->nullable();
-            
-            // Branding
-            $table->string('school_logo')->nullable(); // Path to logo
-            $table->string('school_header_image')->nullable(); // Header/banner
-            $table->text('school_description')->nullable();
-            $table->text('school_vision')->nullable();
-            $table->text('school_mission')->nullable();
-            
-            // Head of School
-            $table->string('principal_name')->nullable();
-            $table->string('principal_nip')->nullable();
-            $table->string('principal_signature')->nullable(); // Path to signature image
-            
-            // PPDB Settings
-            $table->boolean('registration_open')->default(true);
-            $table->text('registration_info')->nullable(); // Info di halaman pendaftaran
-            $table->integer('min_age')->default(12); // Minimal umur
-            $table->integer('max_age')->default(18); // Maksimal umur
+            // Admission Settings
+            $table->boolean('online_admission_enabled')->default(true);
+            $table->boolean('require_payment_before_submission')->default(true);
+            $table->integer('application_review_days')->default(5); // Average review time
             
             // Email Settings
-            $table->boolean('email_notification_enabled')->default(true);
+            $table->boolean('email_notifications_enabled')->default(true);
             $table->string('email_from_address')->nullable();
-            $table->string('email_from_name')->nullable();
+            $table->string('email_from_name')->default('VIS Admissions');
+            $table->boolean('send_submission_confirmation')->default(true);
+            $table->boolean('send_status_updates')->default(true);
+            $table->boolean('send_interview_reminders')->default(true);
+            $table->boolean('send_acceptance_letters')->default(true);
             
-            // Other Settings
-            $table->json('extra_settings')->nullable(); // For future settings
+            // Payment Settings
+            $table->string('default_currency', 3)->default('IDR');
+            $table->text('payment_instructions')->nullable();
+            
+            // Document Requirements
+            $table->json('required_documents')->nullable(); // JSON array of required document types
+            $table->integer('max_file_size_mb')->default(10); // Max upload size per file
+            $table->json('allowed_file_types')->nullable(); // ['pdf', 'jpg', 'png']
+            
+            // Interview Settings
+            $table->boolean('auto_schedule_interviews')->default(false);
+            $table->integer('interview_duration_minutes')->default(60);
+            $table->integer('interview_buffer_minutes')->default(15);
+            
+            // Maintenance
+            $table->boolean('maintenance_mode')->default(false);
+            $table->text('maintenance_message')->nullable();
+            
+            // Additional Settings
+            $table->json('extra_settings')->nullable(); // For future extensibility
             
             $table->timestamps();
         });
