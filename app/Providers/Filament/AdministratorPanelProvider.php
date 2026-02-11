@@ -30,17 +30,20 @@ class AdministratorPanelProvider extends PanelProvider
             ->path('administrator')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->brandName('PPDB MTS N 1 Wonogiri')
+            ->brandLogo(asset('logo/logo.webp')) // Add your logo
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('images/favicon.png'))
+            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
+            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->pages([
                 Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -53,11 +56,19 @@ class AdministratorPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->plugins([
-                FilamentShieldPlugin::make(),
-            ])
             ->authMiddleware([
                 Authenticate::class,
+            ])
+            ->plugin(\BezhanSalleh\FilamentShield\FilamentShieldPlugin::make())
+            ->sidebarCollapsibleOnDesktop()
+            ->navigationGroups([
+                'Master Data',
+                'Pendaftaran',
+                'Verifikasi',
+                'Penilaian',
+                'Pengumuman',
+                'Manajemen',
+                'Laporan',
             ]);
     }
 }

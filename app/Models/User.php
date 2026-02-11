@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -13,8 +15,9 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
+
 
     /**
      * The attributes that are mass assignable.
@@ -168,7 +171,7 @@ class User extends Authenticatable
         if ($this->avatar) {
             return \Storage::url($this->avatar);
         }
-        
+
         // Default avatar using UI Avatars
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }
@@ -203,11 +206,37 @@ class User extends Authenticatable
     public function getInitialsAttribute(): string
     {
         $words = explode(' ', $this->name);
-        
+
         if (count($words) >= 2) {
             return strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
         }
-        
+
         return strtoupper(substr($this->name, 0, 2));
+    }
+
+    /**
+     * Determine which panel(s) user can access
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Admin panel - for admins and panitia only
+        if ($panel->getId() === 'admin') {
+            return $this->hasAnyRole(['super_admin', 'admin_sekolah', 'panitia']);
+        }
+
+        // Student panel - for students only
+        if ($panel->getId() === 'student') {
+            return $this->hasRole('calon_siswa');
+        }
+
+        return false;
+    }
+
+    /**
+     * Get user's name for Filament
+     */
+    public function getFilamentName(): string
+    {
+        return $this->name;
     }
 }
