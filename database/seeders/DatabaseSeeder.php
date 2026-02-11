@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
-     * 
+     *
      * Executes seeders in the correct order for VIS multi-tenant admission system
      */
     public function run(): void
@@ -21,9 +21,9 @@ class DatabaseSeeder extends Seeder
         $this->command->info('║  Multi-Tenancy with Filament                          ║');
         $this->command->info('╚════════════════════════════════════════════════════════╝');
         $this->command->newLine();
-        
+
         $startTime = microtime(true);
-        
+
         // Execute seeders in dependency order
         $seeders = [
             RolePermissionSeeder::class,
@@ -36,37 +36,37 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             // ApplicationSeeder::class, // Optional: Uncomment for sample applications
         ];
-        
+
         foreach ($seeders as $index => $seeder) {
             $seederName = class_basename($seeder);
             $this->command->info("▶ Running: {$seederName} [" . ($index + 1) . "/" . count($seeders) . "]");
             $this->call($seeder);
         }
-        
+
         $endTime = microtime(true);
         $duration = round($endTime - $startTime, 2);
-        
+
         // Final Summary
         $this->command->newLine();
         $this->command->info('════════════════════════════════════════════════════════');
         $this->command->info('✅ DATABASE SEEDING COMPLETED SUCCESSFULLY!');
         $this->command->info('════════════════════════════════════════════════════════');
         $this->command->newLine();
-        
+
         $this->displaySummary();
-        
+
         $this->command->newLine();
         $this->command->info("⏱️  Execution Time: {$duration} seconds");
         $this->command->newLine();
-        
+
         $this->displayNextSteps();
     }
-    
+
     private function displaySummary(): void
     {
         $this->command->info('📊 SEEDING SUMMARY:');
         $this->command->newLine();
-        
+
         $summary = [
             ['Component', 'Count', 'Status'],
             ['─────────────────', '─────', '────────'],
@@ -81,7 +81,7 @@ class DatabaseSeeder extends Seeder
             ['─────────────────', '─────', '────────'],
             ['TOTAL RECORDS', '~178', '✓'],
         ];
-        
+
         foreach ($summary as $row) {
             $this->command->info(sprintf(
                 '  %-18s %-7s %s',
@@ -91,41 +91,41 @@ class DatabaseSeeder extends Seeder
             ));
         }
     }
-    
+
     private function displayNextSteps(): void
     {
         $this->command->info('🚀 NEXT STEPS:');
         $this->command->newLine();
-        
-        $this->command->info('  1. Login as Super Admin:');
+
+        $this->command->info('  1. Login as Super SuperAdmin:');
         $this->command->info('     URL: /superadmin');
         $this->command->info('     Email: superadmin@vis.sch.id');
         $this->command->info('     Password: password');
         $this->command->newLine();
-        
+
         $this->command->info('  2. Access School Panels:');
         $this->command->info('     VIS Bintaro: /school/vis-bin');
         $this->command->info('     VIS Kelapa Gading: /school/vis-kg');
         $this->command->info('     VIS Bali: /school/vis-bali');
         $this->command->newLine();
-        
+
         $this->command->info('  3. School Staff Logins:');
         $this->command->info('     Format: firstname.lastname@[school-code].sch.id');
         $this->command->info('     Example: sarah.johnson@vis-bin.sch.id');
         $this->command->info('     Password: password (for all users)');
         $this->command->newLine();
-        
+
         $this->command->info('  4. Setup Filament Panels:');
         $this->command->info('     - Configure SuperAdminPanel');
         $this->command->info('     - Configure SchoolPanel with tenancy');
         $this->command->info('     - Create Filament Resources');
         $this->command->newLine();
-        
+
         $this->command->info('  5. Optional: Run ApplicationSeeder');
         $this->command->info('     php artisan db:seed --class=ApplicationSeeder');
         $this->command->info('     (Creates sample applications for testing)');
         $this->command->newLine();
-        
+
         $this->command->info('════════════════════════════════════════════════════════');
         $this->command->info('📚 Documentation: Check SEEDER_MASTER_PLAN.md');
         $this->command->info('🐛 Issues? All seeders include error handling & rollback');

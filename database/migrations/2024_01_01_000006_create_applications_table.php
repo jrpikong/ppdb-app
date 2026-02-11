@@ -76,7 +76,7 @@ return new class extends Migration
                 'cancelled'                 // Cancelled by school
             ])->default('draft');
 
-            $table->text('status_notes')->nullable(); // Admin notes for status changes
+            $table->text('status_notes')->nullable(); // SuperAdmin notes for status changes
 
             // Important Dates
             $table->timestamp('submitted_at')->nullable();
@@ -88,7 +88,7 @@ return new class extends Migration
             $table->text('decision_letter')->nullable(); // Generated letter content
             $table->string('decision_letter_file')->nullable(); // PDF file path
 
-            // Admin Assignment
+            // SuperAdmin Assignment
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
 

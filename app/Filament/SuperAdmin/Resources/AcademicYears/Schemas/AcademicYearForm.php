@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Resources\AcademicYears\Schemas;
+namespace App\Filament\SuperAdmin\Resources\AcademicYears\Schemas;
 
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;

@@ -6,12 +6,14 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, BelongsToMany, HasMany};
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Spatie\Permission\Traits\HasRoles;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -202,14 +204,22 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        // Only active users can access panels
-        if (!$this->is_active) {
-            return false;
+        \Log::info('Panel Access Check', [
+            'user' => $this->email,
+            'panel' => $panel->getId(),
+            'roles' => $this->getRoleNames(),
+            'school_id' => $this->school_id,
+        ]);
+
+        if ($panel->getId() === 'superadmin') {
+            return $this->hasRole('super_admin');
         }
 
-        // Admin panel - for staff only
-        if ($panel->getId() === 'admin') {
-            return $this->hasAnyRole(['super_admin', 'admin', 'admission_admin', 'finance_admin']);
+        // School panel - only staff with school_id
+        if ($panel->getId() === 'school') {
+            return $this->hasAnyRole(['school_admin', 'admission_admin', 'finance_admin'])
+                && $this->school_id !== null
+                && $this->is_active;
         }
 
         return false;
@@ -218,6 +228,54 @@ class User extends Authenticatable implements FilamentUser
     public function getFilamentName(): string
     {
         return $this->name;
+    }
+
+    // ============================================
+    // TENANCY IMPLEMENTATION
+    // ============================================
+
+    /**
+     * Get all tenants (schools) the user can access
+     */
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(School::class);
+    }
+    public function getTenants(Panel $panel): Collection
+    {
+        // Super admin has no tenants (global access)
+        if ($this->hasRole('super_admin')) {
+            return collect();
+        }
+
+        // Staff users: return their assigned school
+        if ($this->school_id) {
+            return School::where('id', $this->school_id)->get();
+        }
+
+        return collect();
+    }
+
+    /**
+     * Check if user can access specific tenant
+     */
+    public function canAccessTenant(Model $tenant): bool
+    {
+        // Super admin can access all tenants
+        if ($this->hasRole('super_admin')) {
+            return true;
+        }
+
+        // Staff can only access their assigned school
+        return $this->school_id === $tenant->id;
+    }
+
+    /**
+     * Get tenant menu items (for tenant switcher)
+     */
+    public function getTenantMenuItem(Model $tenant): ?string
+    {
+        return $tenant->name;
     }
 
     // ==================== HELPER METHODS ====================

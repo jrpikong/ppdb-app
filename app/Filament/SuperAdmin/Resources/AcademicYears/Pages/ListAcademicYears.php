@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Admin\Resources\AcademicYears\Pages;
+namespace App\Filament\SuperAdmin\Resources\AcademicYears\Pages;
 
-use App\Filament\Admin\Resources\AcademicYears\AcademicYearResource;
+use App\Filament\SuperAdmin\Resources\AcademicYears\AcademicYearResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 

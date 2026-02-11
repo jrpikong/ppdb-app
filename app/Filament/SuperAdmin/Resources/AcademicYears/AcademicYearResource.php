@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Admin\Resources\AcademicYears;
+namespace App\Filament\SuperAdmin\Resources\AcademicYears;
 
-use App\Filament\Admin\Resources\AcademicYears\Pages\CreateAcademicYear;
-use App\Filament\Admin\Resources\AcademicYears\Pages\EditAcademicYear;
-use App\Filament\Admin\Resources\AcademicYears\Pages\ListAcademicYears;
-use App\Filament\Admin\Resources\AcademicYears\Schemas\AcademicYearForm;
-use App\Filament\Admin\Resources\AcademicYears\Tables\AcademicYearsTable;
+use App\Filament\SuperAdmin\Resources\AcademicYears\Pages\CreateAcademicYear;
+use App\Filament\SuperAdmin\Resources\AcademicYears\Pages\EditAcademicYear;
+use App\Filament\SuperAdmin\Resources\AcademicYears\Pages\ListAcademicYears;
+use App\Filament\SuperAdmin\Resources\AcademicYears\Schemas\AcademicYearForm;
+use App\Filament\SuperAdmin\Resources\AcademicYears\Tables\AcademicYearsTable;
 use App\Models\AcademicYear;
 use BackedEnum;
 use Filament\Resources\Resource;

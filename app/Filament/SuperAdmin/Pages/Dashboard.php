@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Pages;
+namespace App\Filament\SuperAdmin\Pages;
 
 use Filament\Pages\Page;
 

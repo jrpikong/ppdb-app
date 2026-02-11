@@ -13,20 +13,22 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // Add school relationship for staff users
-            $table->foreignId('school_id')->nullable()->after('id')->constrained()->nullOnDelete();
-            
+            $table->unsignedBigInteger('school_id')
+                ->default(0)
+                ->after('id')
+                ->index();
             // Additional fields for international school
             $table->string('phone', 20)->nullable()->after('email');
             $table->string('avatar')->nullable()->after('phone');
             $table->boolean('is_active')->default(true)->after('avatar');
-            
+
             // Staff-specific fields
             $table->string('employee_id')->nullable()->after('is_active');
             $table->string('department')->nullable();
-            
+
             // Soft deletes
             $table->softDeletes();
-            
+
             // Indexes
             $table->index(['school_id', 'is_active']);
             $table->index('employee_id');
@@ -42,7 +44,7 @@ return new class extends Migration
             $table->dropForeign(['school_id']);
             $table->dropIndex(['school_id', 'is_active']);
             $table->dropIndex(['employee_id']);
-            
+
             $table->dropColumn([
                 'school_id',
                 'phone',

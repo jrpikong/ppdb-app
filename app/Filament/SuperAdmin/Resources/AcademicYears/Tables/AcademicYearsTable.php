@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Filament\Admin\Resources\AcademicYears\Tables;
+namespace App\Filament\SuperAdmin\Resources\AcademicYears\Tables;
 
 use App\Models\AcademicYear;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

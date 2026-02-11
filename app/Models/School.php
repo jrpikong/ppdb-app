@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\{HasMany, HasOne};
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Storage;
@@ -75,6 +74,34 @@ class School extends Model
             'allow_online_admission' => 'boolean',
             'settings' => 'array',
         ];
+    }
+
+    // ============================================
+    // TENANT INTERFACE IMPLEMENTATION
+    // ============================================
+
+    /**
+     * Get the tenant identifier (slug for URL)
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'code'; // URL: /school/s/vis-bin
+    }
+
+    /**
+     * Get tenant avatar (logo)
+     */
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->logo ? Storage::url($this->logo) : null;
+    }
+
+    /**
+     * Get tenant name for display
+     */
+    public function getFilamentName(): string
+    {
+        return $this->name;
     }
 
     // ==================== RELATIONSHIPS ====================

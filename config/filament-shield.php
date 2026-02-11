@@ -38,7 +38,8 @@ return [
     |
     */
 
-    'tenant_model' => null,
+    'tenant_model' => 'App\Models\School',
+
 
     /*
     |--------------------------------------------------------------------------
@@ -55,7 +56,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Super Admin
+    | Super SuperAdmin
     |--------------------------------------------------------------------------
     |
     | Here you may define a super admin that has unrestricted access to your
