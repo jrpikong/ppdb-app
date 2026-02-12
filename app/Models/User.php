@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\Carbon;
+use Filament\Models\Contracts\HasDefaultTenant;
+use Filament\Models\Contracts\HasTenants;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -36,7 +38,7 @@ use Filament\Panel;
  * @property bool $is_active
  * @property string|null $remember_token
  */
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasDefaultTenant, HasTenants
 {
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
@@ -304,6 +306,27 @@ class User extends Authenticatable implements FilamentUser
             ->exists();
     }
 
+    /*
+     * OK, kita sudah melakukan :
+
+
+
+
+
+refactore code dari requirement pertama disesuikan dengan requirement dari clisent seperti pada .docx file,
+
+
+
+setting dan setup filament v5 , tenanc dan plugin shield
+
+
+
+membuat semua model dan relations, migrations dan juga seeder
+
+tapi pada deskripsi project ini masih menggunakan versi lama, tolong buatkan yang versi terbaru
+
+
+     */
     public function getTotalApplications(): int
     {
         return $this->applications()->count();
@@ -347,5 +370,15 @@ class User extends Authenticatable implements FilamentUser
             event: $event,
             userId: $this->id
         );
+    }
+
+    public function getDefaultTenant(Panel $panel): ?Model
+    {
+        return $this->latestTeam;
+    }
+
+    public function latestTeam(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'school_id');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Filament\Resources\Resource;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\PermissionRegistrar;
 use App\Models\Permission;

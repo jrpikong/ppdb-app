@@ -25,28 +25,13 @@ class UserSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | Load roles once (safe)
-            |--------------------------------------------------------------------------
-            */
-
-            $roles = Role::where('guard_name', 'web')
-                ->get()
-                ->keyBy('name');
-
-            foreach (['super_admin','school_admin','admission_admin','finance_admin','parent'] as $role) {
-                if (!isset($roles[$role])) {
-                    throw new \Exception("Role missing: {$role}");
-                }
-            }
-
-            /*
-            |--------------------------------------------------------------------------
             | 1. SUPER ADMIN (GLOBAL TENANT = 0)
             |--------------------------------------------------------------------------
             */
 
-            $this->command->info('  Creating Super SuperAdmin...');
+            $this->command->info('  Creating Super Admin...');
 
+            // ✅ Set team context to 0 for super admin
             app(PermissionRegistrar::class)->setPermissionsTeamId(0);
 
             $superAdmin = User::create([
@@ -54,13 +39,20 @@ class UserSeeder extends Seeder
                 'email' => 'superadmin@vis.sch.id',
                 'password' => Hash::make('password'),
                 'phone' => '+62-812-3456-7890',
+                'school_id' => 0,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]);
 
-            $superAdmin->assignRole($roles['super_admin']);
+            // ✅ Get role with school_id = 0
+            $superAdminRole = Role::where('name', 'super_admin')
+                ->where('guard_name', 'web')
+                ->where('school_id', 0)
+                ->firstOrFail();
 
-            $this->command->info('    ✓ Dr. John Anderson');
+            $superAdmin->assignRole($superAdminRole);
+
+            $this->command->info('    ✓ Dr. John Anderson (super_admin)');
 
             /*
             |--------------------------------------------------------------------------
@@ -94,8 +86,8 @@ class UserSeeder extends Seeder
                     continue;
                 }
 
-                app(PermissionRegistrar::class)
-                    ->setPermissionsTeamId($school->id);
+                // ✅ CRITICAL: Set team context to this school's ID
+                app(PermissionRegistrar::class)->setPermissionsTeamId($school->id);
 
                 $this->command->info("    {$school->name}:");
 
@@ -114,7 +106,33 @@ class UserSeeder extends Seeder
                         'email_verified_at' => now(),
                     ]);
 
-                    $user->assignRole($roles[$staff['role']]);
+                    // ✅ Get or create role for THIS school
+                    $role = Role::where('name', $staff['role'])
+                        ->where('guard_name', 'web')
+                        ->where('school_id', $school->id)
+                        ->first();
+
+                    if (!$role) {
+                        // ✅ Role doesn't exist for this school - create it
+                        $role = Role::create([
+                            'name' => $staff['role'],
+                            'guard_name' => 'web',
+                            'school_id' => $school->id,
+                        ]);
+
+                        // ✅ Copy ALL permissions from global role (including Shield permissions!)
+                        $globalRole = Role::where('name', $staff['role'])
+                            ->where('guard_name', 'web')
+                            ->where('school_id', 0)
+                            ->first();
+
+                        if ($globalRole) {
+                            $role->syncPermissions($globalRole->permissions);
+                            $this->command->info("      → Created {$staff['role']} role for {$school->code} ({$role->permissions->count()} permissions)");
+                        }
+                    }
+
+                    $user->assignRole($role);
 
                     $this->command->info("      ✓ {$staff['name']} ({$staff['role']})");
                 }
@@ -128,6 +146,7 @@ class UserSeeder extends Seeder
 
             $this->command->info('  Creating Parent Users...');
 
+            // ✅ Reset team context to 0 for parents
             app(PermissionRegistrar::class)->setPermissionsTeamId(0);
 
             $parents = [
@@ -143,6 +162,12 @@ class UserSeeder extends Seeder
                 ['Isabella Kim','isabella.kim@email.com'],
             ];
 
+            // ✅ Get parent role (global, school_id = 0)
+            $parentRole = Role::where('name', 'parent')
+                ->where('guard_name', 'web')
+                ->where('school_id', 0)
+                ->firstOrFail();
+
             foreach ($parents as [$name, $email]) {
 
                 $user = User::create([
@@ -150,23 +175,28 @@ class UserSeeder extends Seeder
                     'email' => $email,
                     'password' => Hash::make('password'),
                     'phone' => '+62-813-' . rand(1000, 9999) . '-' . rand(1000, 9999),
+                    'school_id' => 0,
                     'is_active' => true,
                     'email_verified_at' => now(),
                 ]);
 
-                $user->assignRole($roles['parent']);
+                $user->assignRole($parentRole);
             }
 
             DB::commit();
 
             $this->command->newLine();
             $this->command->info('✅ USERS SEEDING COMPLETE');
+            $this->command->info('   Total users: ' . User::count());
+            $this->command->info('   Total roles: ' . Role::count());
+            $this->command->info('   Total role assignments: ' . DB::table('model_has_roles')->count());
 
         } catch (\Throwable $e) {
 
             DB::rollBack();
 
             $this->command->error("✗ Error: {$e->getMessage()}");
+            $this->command->error("  File: {$e->getFile()}:{$e->getLine()}");
 
             throw $e;
         }

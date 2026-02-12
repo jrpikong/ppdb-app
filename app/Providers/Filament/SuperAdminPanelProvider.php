@@ -36,7 +36,7 @@ class SuperAdminPanelProvider extends PanelProvider
                     ->gridColumns([
                         'default' => 1,
                         'sm' => 2,
-                        'lg' => 3,
+                        'lg' => 3
                     ])
                     ->sectionColumnSpan(1)
                     ->checkboxListColumns([
@@ -47,7 +47,10 @@ class SuperAdminPanelProvider extends PanelProvider
                     ->resourceCheckboxListColumns([
                         'default' => 1,
                         'sm' => 2,
-                    ]),
+                    ])
+                    ->scopeToTenant(true)                       // bool|Closure
+                    ->tenantRelationshipName('organization')    // string|Closure|null
+                    ->tenantOwnershipRelationshipName('owner') // string|Closure|null,
             ])
             ->brandName('VIS Admin')
             ->brandLogo(asset('logo/logo.webp')) // Add your logo

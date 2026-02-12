@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
-use Illuminate\Database\Eloquent\Relations\{HasMany, HasOne};
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Storage;
 
@@ -377,4 +377,11 @@ class School extends Model
             }
         });
     }
+
+    /** @return HasMany<\App\Models\Role, self> */
+    public function roles(): HasMany
+    {
+        return $this->hasMany(\App\Models\Role::class);
+    }
+
 }

@@ -2,14 +2,16 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Pages\Dashboard;
+use App\Filament\SuperAdmin\Widgets\AccountWidget;
 use App\Models\School;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -24,11 +26,46 @@ class SchoolPanelProvider extends PanelProvider
         return $panel
             ->id('school')
             ->path('school')
+            ->colors([
+                'primary' => Color::Blue,
+            ])
             ->login()
-            ->tenant(School::class)
+            ->tenant(School::class,'code')
+            ->tenantRegistration(null)
             ->tenantRoutePrefix('s')
+            ->discoverResources(in: app_path('Filament/School/Resources'), for: 'App\\Filament\\School\\Resources')
+            ->discoverPages(in: app_path('Filament/School/Pages'), for: 'App\\Filament\\School\\Pages')
             ->pages([
-                Dashboard::class, // ✅ Use Filament's built-in Dashboard
+                \App\Filament\School\Pages\Dashboard::class, // ✅ Use Filament's built-in Dashboard
+            ])
+            ->discoverWidgets(in: app_path('Filament/School/Widgets'), for: 'App\\Filament\\School\\Widgets')
+            ->widgets([
+                AccountWidget::class,
+            ])
+            ->plugins([
+                FilamentShieldPlugin::make()
+                    // ✅ CRITICAL: Enable tenant scoping
+                    ->scopeToTenant(true)
+
+                    // ✅ Relationship name dari Role ke School
+                    ->tenantOwnershipRelationshipName('school')
+
+                    // Layout customization (optional)
+                    ->gridColumns([
+                        'default' => 1,
+                        'sm' => 2,
+                        'lg' => 3,
+                    ])
+                    ->sectionColumnSpan(1)
+                    ->checkboxListColumns([
+                        'default' => 1,
+                        'sm' => 2,
+                        'lg' => 4,
+                    ])
+                    ->resourceCheckboxListColumns([
+                        'default' => 1,
+                        'sm' => 2,
+                    ]),
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -44,6 +81,18 @@ class SchoolPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->authGuard('web');
+            ->authGuard('web')
+            ->brandName('VIS School Portal')
+            ->brandLogo(asset('logo/logo.webp'))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('images/favicon.png'))
+            ->sidebarCollapsibleOnDesktop()
+            ->navigationGroups([
+                'Admissions',
+                'Students',
+                'Finance',
+                'Settings',
+                'Reports',
+            ]);
     }
 }

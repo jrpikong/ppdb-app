@@ -38,7 +38,8 @@ return [
     |
     */
 
-    'tenant_model' => 'App\Models\School',
+//    'tenant_model' => 'App\Models\School',
+    'tenant_model' => null,
 
 
     /*

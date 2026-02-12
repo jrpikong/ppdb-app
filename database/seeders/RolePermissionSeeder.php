@@ -32,7 +32,7 @@ class RolePermissionSeeder extends Seeder
             'view_analytics',
             'view_global_reports',
 
-            // School Management (Super SuperAdmin Only)
+            // School Management (Super Admin Only)
             'view_any_school',
             'view_school',
             'create_school',
@@ -126,6 +126,13 @@ class RolePermissionSeeder extends Seeder
             'delete_user',
             'assign_roles',
 
+            // ✅ Shield - Role Management (NEW!)
+            'view_any_role',
+            'view_role',
+            'create_role',
+            'update_role',
+            'delete_role',
+
             // Settings
             'view_settings',
             'update_settings',
@@ -205,6 +212,9 @@ class RolePermissionSeeder extends Seeder
             // Users (School level)
             'view_any_user', 'view_user', 'create_user', 'update_user',
 
+            // ✅ Shield - Role Management (School can manage their own roles)
+            'view_any_role', 'view_role', 'create_role', 'update_role', 'delete_role',
+
             // Settings (School level)
             'view_settings', 'update_settings',
 
@@ -214,7 +224,7 @@ class RolePermissionSeeder extends Seeder
             // Activity Logs
             'view_any_activity_log', 'view_activity_log',
         ]);
-        $this->command->info('  ✓ school_admin: Full school management');
+        $this->command->info('  ✓ school_admin: Full school management + role management');
 
         // 3. ADMISSION ADMIN (Per School - Application Processing)
         $this->command->info('  Creating: admission_admin...');
@@ -312,7 +322,7 @@ class RolePermissionSeeder extends Seeder
             ['Role', 'Permissions', 'Access Level'],
             [
                 ['super_admin', Permission::count(), 'Global (All Schools)'],
-                ['school_admin', $schoolAdmin->permissions->count(), 'School Level (Full)'],
+                ['school_admin', $schoolAdmin->permissions->count(), 'School Level (Full + Roles)'],
                 ['admission_admin', $admissionAdmin->permissions->count(), 'School Level (Admission)'],
                 ['finance_admin', $financeAdmin->permissions->count(), 'School Level (Finance)'],
                 ['parent', $parent->permissions->count(), 'Limited (Own Data)'],
