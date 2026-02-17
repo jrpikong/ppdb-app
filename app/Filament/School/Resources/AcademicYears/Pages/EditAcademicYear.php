@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\SuperAdmin\Resources\AcademicYears\Pages;
+namespace App\Filament\School\Resources\AcademicYears\Pages;
 
-use App\Filament\SuperAdmin\Resources\AcademicYears\AcademicYearResource;
+use App\Filament\School\Resources\AcademicYears\AcademicYearResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -15,18 +15,18 @@ class EditAcademicYear extends EditRecord
 
     public function getTitle(): string
     {
-        return 'Edit Tahun Ajaran';
+        return 'Edit Academic Year';
     }
 
     protected function getHeaderActions(): array
     {
         return [
             DeleteAction::make()
-                ->label('Hapus'),
+                ->label('Delete'),
             ForceDeleteAction::make()
-                ->label('Hapus Permanen'),
+                ->label('Delete Permanently'),
             RestoreAction::make()
-                ->label('Pulihkan'),
+                ->label('Publish'),
         ];
     }
 
@@ -39,8 +39,8 @@ class EditAcademicYear extends EditRecord
     {
         return Notification::make()
             ->success()
-            ->title('Tahun Ajaran Diperbarui')
-            ->body('Perubahan berhasil disimpan.');
+            ->title('Academic Year Updated!')
+            ->body('Academic Year was updated successfully!');
     }
 
     protected function mutateFormDataBeforeSave(array $data): array

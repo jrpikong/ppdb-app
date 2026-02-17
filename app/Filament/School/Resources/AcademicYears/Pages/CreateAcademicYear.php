@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\SuperAdmin\Resources\AcademicYears\Pages;
+namespace App\Filament\School\Resources\AcademicYears\Pages;
 
-use App\Filament\SuperAdmin\Resources\AcademicYears\AcademicYearResource;
+use App\Filament\School\Resources\AcademicYears\AcademicYearResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -12,7 +12,7 @@ class CreateAcademicYear extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Buat Tahun Ajaran Baru';
+        return 'Create Academic Year';
     }
 
     protected function getRedirectUrl(): string
@@ -24,8 +24,8 @@ class CreateAcademicYear extends CreateRecord
     {
         return Notification::make()
             ->success()
-            ->title('Tahun Ajaran Dibuat')
-            ->body('Tahun ajaran berhasil ditambahkan.');
+            ->title('Academic Year created!')
+            ->body('Academic Year created!');
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array

@@ -50,6 +50,10 @@ class AcademicYear extends Model
         ];
     }
 
+    /**
+     * Boot the model.
+     */
+
     // ==================== RELATIONSHIPS ====================
 
     /**
@@ -267,6 +271,12 @@ class AcademicYear extends Model
                 static::where('school_id', $year->school_id)
                       ->where('id', '!=', $year->id)
                       ->update(['is_active' => false]);
+            }
+
+            // Auto-deactivate other academic years when this one is activated
+            if ($year->is_active) {
+                static::where('id', '!=', $year->id)
+                    ->update(['is_active' => false]);
             }
         });
     }

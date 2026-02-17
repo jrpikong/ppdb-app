@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
             AdmissionPeriodSeeder::class,
             PaymentTypeSeeder::class,
             UserSeeder::class,
-            // ApplicationSeeder::class, // Optional: Uncomment for sample applications
+            ApplicationSeeder::class, // Optional: Uncomment for sample applications
         ];
 
         foreach ($seeders as $index => $seeder) {

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\SuperAdmin\Resources\AcademicYears\Pages;
+namespace App\Filament\School\Resources\AcademicYears\Pages;
 
-use App\Filament\SuperAdmin\Resources\AcademicYears\AcademicYearResource;
+use App\Filament\School\Resources\AcademicYears\AcademicYearResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
@@ -14,14 +14,14 @@ class ListAcademicYears extends ListRecords
     {
         return [
             CreateAction::make()
-                ->label('Buat Tahun Ajaran')
+                ->label('Create Academic Year')
                 ->icon('heroicon-m-plus'),
         ];
     }
 
     public function getTitle(): string
     {
-        return 'Tahun Ajaran';
+        return 'Academic Years';
     }
 
     protected function getHeaderWidgets(): array

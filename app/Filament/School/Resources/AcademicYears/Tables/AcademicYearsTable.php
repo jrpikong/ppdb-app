@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\SuperAdmin\Resources\AcademicYears\Tables;
+namespace App\Filament\School\Resources\AcademicYears\Tables;
 
 use App\Models\AcademicYear;
 use Filament\Actions\Action;
@@ -41,19 +41,17 @@ class AcademicYearsTable
                     ->icon('heroicon-m-calendar')
                     ->iconColor('primary'),
 
-                TextColumn::make('start_year')
-                    ->label('Tahun Mulai')
+                TextColumn::make('start_date')
+                    ->label('Tanggal Mulai')
+                    ->date()
                     ->sortable()
-                    ->alignCenter()
-                    ->badge()
-                    ->color('info'),
+                    ->alignCenter(),
 
-                TextColumn::make('end_year')
-                    ->label('Tahun Selesai')
+                TextColumn::make('end_date')
+                    ->label('Tanggal Selesai')
+                    ->date()
                     ->sortable()
-                    ->alignCenter()
-                    ->badge()
-                    ->color('danger'),
+                    ->alignCenter(),
 
                 IconColumn::make('is_active')
                     ->label('Status')
@@ -65,13 +63,13 @@ class AcademicYearsTable
                     ->alignCenter()
                     ->sortable(),
 
-                TextColumn::make('total_registrations')
-                    ->label('Total Pendaftar')
-                    ->alignCenter()
-                    ->badge()
-                    ->color('success')
-                    ->icon('heroicon-m-user-group')
-                    ->sortable(),
+//                TextColumn::make('total_registrations')
+//                    ->label('Total Pendaftar')
+//                    ->alignCenter()
+//                    ->badge()
+//                    ->color('success')
+//                    ->icon('heroicon-m-user-group')
+//                    ->sortable(),
 
                 TextColumn::make('created_at')
                     ->label('Dibuat')
