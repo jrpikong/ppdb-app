@@ -72,7 +72,6 @@ class ApplicationResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return ApplicationInfolist::configure($schema);
-
     }
 
     /**

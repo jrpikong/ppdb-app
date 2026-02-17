@@ -35,6 +35,7 @@ class ParentGuardiansRelationManager extends RelationManager
         return $schema
             ->schema([
                 Section::make('Parent/Guardian Details')
+                    ->columnSpanFull()
                     ->schema([
                         Select::make('relationship')
                             ->label('Relationship')

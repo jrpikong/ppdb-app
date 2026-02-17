@@ -236,9 +236,14 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
 
         // School panel - only staff with school_id
         if ($panel->getId() === 'school') {
-            return $this->hasAnyRole(['school_admin', 'admission_admin', 'finance_admin'])
-                && $this->school_id !== null
-                && $this->is_active;
+            return $this->school_id !== null
+                && $this->school_id !== 0
+                && $this->hasAnyRole([
+                    'super_admin',       // ✅ FIX: per-school super admin
+                    'school_admin',
+                    'admission_admin',
+                    'finance_admin',
+                ]);
         }
 
         return false;
@@ -306,27 +311,6 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             ->exists();
     }
 
-    /*
-     * OK, kita sudah melakukan :
-
-
-
-
-
-refactore code dari requirement pertama disesuikan dengan requirement dari clisent seperti pada .docx file,
-
-
-
-setting dan setup filament v5 , tenanc dan plugin shield
-
-
-
-membuat semua model dan relations, migrations dan juga seeder
-
-tapi pada deskripsi project ini masih menggunakan versi lama, tolong buatkan yang versi terbaru
-
-
-     */
     public function getTotalApplications(): int
     {
         return $this->applications()->count();
