@@ -217,7 +217,7 @@ class MedicalRecord extends Model
             && !is_null($this->immunizations_up_to_date);
     }
 
-    public function getCompletionPercentage(): int
+    public function getCompletionPercentage(): float
     {
         $fields = [
             'blood_type' => !empty($this->blood_type),
