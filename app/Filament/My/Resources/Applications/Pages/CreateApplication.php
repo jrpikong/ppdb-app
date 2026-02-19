@@ -17,14 +17,40 @@ class CreateApplication extends CreateRecord
 {
     protected static string $resource = ApplicationResource::class;
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // After saving the draft, redirect straight into the edit wizard so the
+    // parent can continue filling in student biodata, guardians, documents, etc.
+    // ──────────────────────────────────────────────────────────────────────────
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('edit', ['record' => $this->getRecord()]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Inject user_id and status before Eloquent::create()
+    // ──────────────────────────────────────────────────────────────────────────
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['user_id'] = auth()->id();
-        $data['status'] = 'draft';
+        $data['status']  = 'draft';
+
+        // These fields are required by the DB schema (NOT NULL).
+        // We fill them with safe placeholder values so the draft row can be
+        // inserted. The parent will overwrite them in the edit wizard.
+        // NOTE: if you run the companion migration that makes them nullable,
+        //       these fallbacks become redundant — but keeping them is harmless.
+        $data['student_first_name'] = $data['student_first_name'] ?? '';
+        $data['student_last_name']  = $data['student_last_name']  ?? '';
+        $data['birth_date']         = $data['birth_date']         ?? null;
+        $data['nationality']        = $data['nationality']         ?? '';
 
         return $data;
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Custom creation handler: generates a unique application number with
+    // optimistic concurrency / retry to prevent duplicate key collisions.
+    // ──────────────────────────────────────────────────────────────────────────
     protected function handleRecordCreation(array $data): Model
     {
         $schoolId = (int) ($data['school_id'] ?? 0);
@@ -34,7 +60,7 @@ class CreateApplication extends CreateRecord
         }
 
         $maxAttempts = 5;
-        $attempt = 0;
+        $attempt     = 0;
 
         do {
             try {
@@ -48,9 +74,9 @@ class CreateApplication extends CreateRecord
 
                     return Application::query()->create($data);
                 }, 3);
-            } catch (QueryException $exception) {
-                if (! $this->isDuplicateApplicationNumberException($exception) || ++$attempt >= $maxAttempts) {
-                    throw $exception;
+            } catch (QueryException $e) {
+                if (! $this->isDuplicateApplicationNumberException($e) || ++$attempt >= $maxAttempts) {
+                    throw $e;
                 }
 
                 usleep(random_int(10_000, 50_000));
@@ -58,9 +84,13 @@ class CreateApplication extends CreateRecord
         } while (true);
     }
 
-    protected function generateNextApplicationNumber(School $school): string
+    // ──────────────────────────────────────────────────────────────────────────
+    // Application number format: {SCHOOL-CODE}-{YY}{MM}-{SEQUENCE:04d}
+    // e.g.  VIS-BALI-2602-0005
+    // ──────────────────────────────────────────────────────────────────────────
+    private function generateNextApplicationNumber(School $school): string
     {
-        $year = now()->format('y');
+        $year  = now()->format('y');
         $month = now()->format('m');
 
         $lastApplication = Application::query()
@@ -72,30 +102,35 @@ class CreateApplication extends CreateRecord
 
         $lastSequence = 0;
 
-        if ($lastApplication !== null && preg_match('/(\d{4})$/', $lastApplication->application_number, $matches) === 1) {
+        if (
+            $lastApplication !== null
+            && preg_match('/(\d{4})$/', (string) $lastApplication->application_number, $matches) === 1
+        ) {
             $lastSequence = (int) $matches[1];
         }
 
         return sprintf('%s-%s%s-%04d', $school->code, $year, $month, $lastSequence + 1);
     }
 
-    protected function isDuplicateApplicationNumberException(QueryException $exception): bool
+    private function isDuplicateApplicationNumberException(QueryException $e): bool
     {
-        $message = strtolower($exception->getMessage());
-        $sqlState = (string) ($exception->errorInfo[0] ?? '');
-        $driverCode = (string) ($exception->errorInfo[1] ?? '');
+        $message  = strtolower($e->getMessage());
+        $sqlState = (string) ($e->errorInfo[0] ?? '');
+        $code     = (int)    ($e->errorInfo[1] ?? 0);
 
-        return str_contains($message, 'application_number')
-            && (
-                $sqlState === '23000' ||
-                $sqlState === '23505' ||
-                $driverCode === '1062' ||
-                $driverCode === '19'
-            );
+        // MySQL: 1062 / SQLSTATE 23000 — duplicate entry
+        // PostgreSQL: 23505 — unique violation
+        return $code === 1062
+            || $sqlState === '23000'
+            || $sqlState === '23505'
+            || str_contains($message, 'application_number');
     }
 
-    protected function getRedirectUrl(): string
+    // ──────────────────────────────────────────────────────────────────────────
+    // UX: show a friendly success notification before redirect
+    // ──────────────────────────────────────────────────────────────────────────
+    protected function getCreatedNotificationTitle(): ?string
     {
-        return $this->getResource()::getUrl('edit', ['record' => $this->getRecord()]);
+        return 'Draft application created — please complete the form below.';
     }
 }
