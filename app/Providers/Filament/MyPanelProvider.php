@@ -31,6 +31,8 @@ class MyPanelProvider extends PanelProvider
             ])
             ->login()
             ->registration(Register::class)
+            ->emailVerification()
+            ->profile()
             ->passwordReset()
             ->emailVerification()
             ->discoverResources(in: app_path('Filament/My/Resources'), for: 'App\\Filament\\My\\Resources')

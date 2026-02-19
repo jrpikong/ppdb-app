@@ -33,6 +33,8 @@ use Filament\Panel;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $phone
+ * @property string|null $occupation
+ * @property string|null $address
  * @property string|null $avatar
  * @property string|null $employee_id
  * @property string|null $department
@@ -51,6 +53,8 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         'email',
         'password',
         'phone',
+        'occupation',
+        'address',
         'avatar',
         'employee_id',
         'department',
