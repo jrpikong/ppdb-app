@@ -187,7 +187,11 @@ class Schedule extends Model
     protected function scheduledDateTime(): Attribute
     {
         return Attribute::make(
-            get: fn() => Carbon::parse("{$this->scheduled_date} {$this->scheduled_time}")
+            get: fn() => Carbon::createFromFormat(
+                'Y-m-d H:i:s',
+                Carbon::parse($this->scheduled_date)->toDateString() . ' ' .
+                Carbon::parse($this->scheduled_time)->toTimeString()
+            )
         );
     }
 

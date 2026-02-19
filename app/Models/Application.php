@@ -97,6 +97,20 @@ class Application extends Model
         'withdrawn' => 'Withdrawn',
     ];
 
+    public const ACTIVE_STATUSES = [
+        'draft',
+        'submitted',
+        'under_review',
+        'documents_verified',
+        'interview_scheduled',
+        'interview_completed',
+        'payment_pending',
+        'payment_verified',
+        'accepted',
+        'waitlisted',
+        'enrolled',
+    ];
+
     public const STATUS_TRANSITIONS = [
         'draft' => ['submitted', 'withdrawn'],
         'submitted' => ['under_review', 'withdrawn'],
@@ -428,6 +442,11 @@ class Application extends Model
     public static function statusLabelFor(string $status): string
     {
         return self::STATUS_LABELS[$status] ?? ucfirst($status);
+    }
+
+    public static function activeStatuses(): array
+    {
+        return self::ACTIVE_STATUSES;
     }
 
     public function canTransitionTo(string $newStatus): bool

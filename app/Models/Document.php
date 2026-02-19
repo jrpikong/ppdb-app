@@ -33,6 +33,28 @@ class Document extends Model
 {
     use SoftDeletes;
 
+    public const DOCUMENT_TYPES = [
+        'student_photo_1' => 'Student Photo 1',
+        'student_photo_2' => 'Student Photo 2',
+        'father_photo' => 'Father Photo',
+        'mother_photo' => 'Mother Photo',
+        'guardian_photo' => 'Guardian Photo',
+        'father_id_card' => 'Father ID Card',
+        'mother_id_card' => 'Mother ID Card',
+        'guardian_id_card' => 'Guardian ID Card',
+        'birth_certificate' => 'Birth Certificate',
+        'family_card' => 'Family Card',
+        'passport' => 'Passport',
+        'latest_report_book' => 'Latest Report Book',
+        'previous_report_books' => 'Previous Report Books',
+        'recommendation_letter' => 'Recommendation Letter',
+        'transcript' => 'Academic Transcript',
+        'medical_history' => 'Medical History',
+        'special_needs_form' => 'Special Needs Form',
+        'immunization_record' => 'Immunization Record',
+        'other' => 'Other Document',
+    ];
+
     protected $table = 'documents';
 
     protected $fillable = [
@@ -102,29 +124,13 @@ class Document extends Model
     protected function typeLabel(): Attribute
     {
         return Attribute::make(
-            get: fn() => match($this->type) {
-                'student_photo_1' => 'Student Photo 1',
-                'student_photo_2' => 'Student Photo 2',
-                'father_photo' => 'Father Photo',
-                'mother_photo' => 'Mother Photo',
-                'guardian_photo' => 'Guardian Photo',
-                'father_id_card' => 'Father ID Card',
-                'mother_id_card' => 'Mother ID Card',
-                'guardian_id_card' => 'Guardian ID Card',
-                'birth_certificate' => 'Birth Certificate',
-                'family_card' => 'Family Card',
-                'passport' => 'Passport',
-                'latest_report_book' => 'Latest Report Book',
-                'previous_report_books' => 'Previous Report Books',
-                'recommendation_letter' => 'Recommendation Letter',
-                'transcript' => 'Academic Transcript',
-                'medical_history' => 'Medical History',
-                'special_needs_form' => 'Special Needs Form',
-                'immunization_record' => 'Immunization Record',
-                'other' => 'Other Document',
-                default => ucwords(str_replace('_', ' ', $this->type)),
-            }
+            get: fn() => self::DOCUMENT_TYPES[$this->type] ?? ucwords(str_replace('_', ' ', $this->type)),
         );
+    }
+
+    public static function documentTypeOptions(): array
+    {
+        return self::DOCUMENT_TYPES;
     }
 
     protected function fileUrl(): Attribute

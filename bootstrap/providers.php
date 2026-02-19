@@ -4,4 +4,5 @@ return [
     App\Providers\AppServiceProvider::class,
     App\Providers\Filament\SuperAdminPanelProvider::class,
     App\Providers\Filament\SchoolPanelProvider::class,
+    App\Providers\Filament\MyPanelProvider::class,
 ];

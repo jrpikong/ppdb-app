@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Filament\Models\Contracts\HasDefaultTenant;
 use Filament\Models\Contracts\HasTenants;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -38,7 +39,7 @@ use Filament\Panel;
  * @property bool $is_active
  * @property string|null $remember_token
  */
-class User extends Authenticatable implements FilamentUser, HasDefaultTenant, HasTenants
+class User extends Authenticatable implements FilamentUser, HasDefaultTenant, HasTenants, MustVerifyEmail
 {
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
@@ -235,6 +236,10 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         }
         if ($panel->getId() === 'superadmin') {
             return $this->hasRole('super_admin');
+        }
+
+        if ($panel->getId() === 'my') {
+            return $this->hasRole('parent');
         }
 
         // School panel - only staff with school_id
