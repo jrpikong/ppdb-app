@@ -3,6 +3,7 @@
 namespace App\Filament\School\Resources\Applications\Schemas;
 
 use App\Models\AdmissionPeriod;
+use App\Models\Application;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -28,9 +29,17 @@ class ApplicationForm
                             ->relationship(
                                 name: 'admissionPeriod',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query) => $query
-                                    ->where('school_id', Filament::getTenant()->id)
-                                    ->where('is_active', true)
+                                modifyQueryUsing: function (Builder $query): Builder {
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (! $tenantId) {
+                                        return $query->whereRaw('1 = 0');
+                                    }
+
+                                    return $query
+                                        ->where('school_id', $tenantId)
+                                        ->where('is_active', true);
+                                }
                             )
                             ->required()
                             ->searchable()
@@ -50,9 +59,17 @@ class ApplicationForm
                             ->relationship(
                                 name: 'level',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query) => $query
-                                    ->where('school_id', Filament::getTenant()->id)
-                                    ->where('is_active', true)
+                                modifyQueryUsing: function (Builder $query): Builder {
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (! $tenantId) {
+                                        return $query->whereRaw('1 = 0');
+                                    }
+
+                                    return $query
+                                        ->where('school_id', $tenantId)
+                                        ->where('is_active', true);
+                                }
 //                                    ->orderBy('sequence')
                             )
                             ->required()
@@ -62,21 +79,7 @@ class ApplicationForm
 
                         Select::make('status')
                             ->label('Application Status')
-                            ->options([
-                                'draft' => 'Draft',
-                                'submitted' => 'Submitted',
-                                'under_review' => 'Under Review',
-                                'documents_verified' => 'Documents Verified',
-                                'interview_scheduled' => 'Interview Scheduled',
-                                'interview_completed' => 'Interview Completed',
-                                'payment_pending' => 'Payment Pending',
-                                'payment_verified' => 'Payment Verified',
-                                'accepted' => 'Accepted',
-                                'rejected' => 'Rejected',
-                                'waitlisted' => 'Waitlisted',
-                                'enrolled' => 'Enrolled',
-                                'withdrawn' => 'Withdrawn',
-                            ])
+                            ->options(Application::statusOptions())
                             ->default('draft')
                             ->required()
                             ->columnSpan(1),
@@ -86,12 +89,20 @@ class ApplicationForm
                             ->relationship(
                                 name: 'assignedTo',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query) => $query
-                                    ->where('school_id', Filament::getTenant()->id)
-                                    ->where('is_active', true)
-                                    ->whereHas('roles', function ($q) {
-                                        $q->whereIn('name', ['school_admin', 'admission_admin']);
-                                    })
+                                modifyQueryUsing: function (Builder $query): Builder {
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (! $tenantId) {
+                                        return $query->whereRaw('1 = 0');
+                                    }
+
+                                    return $query
+                                        ->where('school_id', $tenantId)
+                                        ->where('is_active', true)
+                                        ->whereHas('roles', function ($q) {
+                                            $q->whereIn('name', ['school_admin', 'admission_admin']);
+                                        });
+                                }
                             )
                             ->searchable()
                             ->preload()

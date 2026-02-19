@@ -63,7 +63,7 @@ class StatsOverviewWidget extends BaseWidget
 
         // Application conversion rate (accepted / total submitted)
         $submittedCount = Application::where('school_id', $schoolId)
-            ->whereIn('status', ['submitted', 'under_review', 'accepted', 'rejected', 'waitlist'])
+            ->whereIn('status', ['submitted', 'under_review', 'accepted', 'rejected', 'waitlisted'])
             ->count();
         $acceptedCount = Application::where('school_id', $schoolId)
             ->where('status', 'accepted')

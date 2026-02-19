@@ -10,15 +10,11 @@ use App\Filament\School\Resources\Applications\Schemas\ApplicationForm;
 use App\Filament\School\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Filament\School\Resources\Applications\Tables\ApplicationsTable;
 use App\Models\Application;
-use App\Models\User;
-use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Support\Enums\FontWeight;
 
 class ApplicationResource extends Resource
 {
@@ -39,8 +35,14 @@ class ApplicationResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
         return parent::getEloquentQuery()
-            ->where('school_id', Filament::getTenant()->id)
+            ->where('school_id', $tenantId)
             ->with([
                 'user',
                 'admissionPeriod',
@@ -105,7 +107,13 @@ class ApplicationResource extends Resource
      */
     public static function getNavigationBadge(): ?string
     {
-        $count = static::getModel()::where('school_id', Filament::getTenant()->id)
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            return null;
+        }
+
+        $count = static::getModel()::where('school_id', $tenantId)
             ->whereIn('status', ['submitted', 'under_review'])
             ->count();
 
@@ -116,7 +124,13 @@ class ApplicationResource extends Resource
      */
     public static function getNavigationBadgeColor(): ?string
     {
-        $count = static::getModel()::where('school_id', Filament::getTenant()->id)
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            return null;
+        }
+
+        $count = static::getModel()::where('school_id', $tenantId)
             ->whereIn('status', ['submitted', 'under_review'])
             ->count();
 

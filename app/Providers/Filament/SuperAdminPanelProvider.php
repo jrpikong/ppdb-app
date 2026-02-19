@@ -48,9 +48,9 @@ class SuperAdminPanelProvider extends PanelProvider
                         'default' => 1,
                         'sm' => 2,
                     ])
-                    ->scopeToTenant(true)                       // bool|Closure
-                    ->tenantRelationshipName('organization')    // string|Closure|null
-                    ->tenantOwnershipRelationshipName('owner') // string|Closure|null,
+                    ->scopeToTenant(true)
+                    ->tenantRelationshipName('school')
+                    ->tenantOwnershipRelationshipName('school'),
             ])
             ->brandName('VIS Admin')
             ->brandLogo(asset('logo/logo.webp')) // Add your logo

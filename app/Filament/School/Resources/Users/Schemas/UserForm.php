@@ -12,6 +12,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 
@@ -21,15 +22,13 @@ class UserForm
     {
         return $schema
             ->components([
-
-                // ── SECTION 1: Personal Information ─────────────────────────
+                // SECTION 1: Personal Information
                 Section::make('Personal Information')
                     ->description('Basic identity and contact details for this staff member.')
                     ->icon('heroicon-o-user-circle')
                     ->columns(2)
                     ->schema([
-
-                        // Avatar — full width di atas
+                        // Avatar full width
                         FileUpload::make('avatar')
                             ->label('Profile Photo')
                             ->image()
@@ -69,15 +68,19 @@ class UserForm
                             ->prefixIcon('heroicon-o-identification'),
                     ]),
 
-                // ── SECTION 2: Department & Role ─────────────────────────────
+                // SECTION 2: Department & Role
                 Section::make('Role & Department')
                     ->description('Assign the staff member\'s role and department within this school.')
                     ->icon('heroicon-o-shield-check')
                     ->columns(2)
                     ->schema([
-
                         Select::make('roles')
-                            ->relationship('roles', 'name')
+                            ->relationship(
+                                'roles',
+                                'name',
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->where('roles.school_id', Filament::getTenant()?->id)
+                            )
                             ->saveRelationshipsUsing(function (Model $record, $state) {
                                 $record->roles()->syncWithPivotValues($state, [config('permission.column_names.team_foreign_key') => getPermissionsTeamId()]);
                             })
@@ -92,16 +95,14 @@ class UserForm
                             ->maxLength(100)
                             ->placeholder('e.g. Admissions Office')
                             ->prefixIcon('heroicon-o-building-office'),
-
                     ]),
 
-                // ── SECTION 3: Account Settings ──────────────────────────────
+                // SECTION 3: Account Settings
                 Section::make('Account Settings')
                     ->description('Password and account status configuration.')
                     ->icon('heroicon-o-lock-closed')
                     ->columns(2)
                     ->schema([
-
                         TextInput::make('password')
                             ->label('Password')
                             ->password()
@@ -123,10 +124,9 @@ class UserForm
                             ->helperText('Inactive accounts cannot log in to the system.')
                             ->default(true)
                             ->inline(false),
-
                     ]),
 
-                // ── SECTION 4: Readonly Meta (Edit only) ──────────────────────
+                // SECTION 4: Readonly Meta (Edit only)
                 Section::make('Account Information')
                     ->description('System-generated metadata.')
                     ->icon('heroicon-o-information-circle')
@@ -134,13 +134,12 @@ class UserForm
                     ->collapsed()
                     ->visibleOn('edit')
                     ->schema([
-
                         TextEntry::make('email_verified_at')
                             ->label('Email Verified')
                             ->default(fn ($record): string =>
                             $record?->email_verified_at
-                                ? '✅ ' . $record->email_verified_at->format('d M Y, H:i')
-                                : '❌ Not yet verified'
+                                ? 'Verified at ' . $record->email_verified_at->format('d M Y, H:i')
+                                : 'Not yet verified'
                             ),
 
                         TextEntry::make('created_at')
@@ -148,9 +147,7 @@ class UserForm
                             ->default(fn ($record): string =>
                                 $record?->created_at?->format('d M Y, H:i') ?? '-'
                             ),
-
                     ]),
-
             ]);
     }
 }

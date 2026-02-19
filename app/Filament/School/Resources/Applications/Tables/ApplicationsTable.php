@@ -16,6 +16,7 @@ use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -128,21 +129,7 @@ class ApplicationsTable
                 // Status Filter
                 SelectFilter::make('status')
                     ->multiple()
-                    ->options([
-                        'draft' => 'Draft',
-                        'submitted' => 'Submitted',
-                        'under_review' => 'Under Review',
-                        'documents_verified' => 'Documents Verified',
-                        'interview_scheduled' => 'Interview Scheduled',
-                        'interview_completed' => 'Interview Completed',
-                        'payment_pending' => 'Payment Pending',
-                        'payment_verified' => 'Payment Verified',
-                        'accepted' => 'Accepted',
-                        'rejected' => 'Rejected',
-                        'waitlisted' => 'Waitlisted',
-                        'enrolled' => 'Enrolled',
-                        'withdrawn' => 'Withdrawn',
-                    ])
+                    ->options(Application::statusOptions())
                     ->label('Status'),
 
                 // Admission Period Filter
@@ -150,8 +137,13 @@ class ApplicationsTable
                     ->relationship(
                         name: 'admissionPeriod',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn (Builder $query) => $query
-                            ->where('school_id', Filament::getTenant()->id)
+                        modifyQueryUsing: function (Builder $query): Builder {
+                            $tenantId = Filament::getTenant()?->id;
+
+                            return $tenantId
+                                ? $query->where('school_id', $tenantId)
+                                : $query->whereRaw('1 = 0');
+                        }
                     )
                     ->searchable()
                     ->preload()
@@ -162,9 +154,16 @@ class ApplicationsTable
                     ->relationship(
                         name: 'level',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn (Builder $query) => $query
-                            ->where('school_id', Filament::getTenant()->id)
+                        modifyQueryUsing: function (Builder $query): Builder {
+                            $tenantId = Filament::getTenant()?->id;
+
+                            if (! $tenantId) {
+                                return $query->whereRaw('1 = 0');
+                            }
+
+                            return $query->where('school_id', $tenantId);
                             // ->orderBy('sequence')
+                        }
                     )
                     ->searchable()
                     ->preload()
@@ -175,8 +174,13 @@ class ApplicationsTable
                     ->relationship(
                         name: 'assignedTo',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn (Builder $query) => $query
-                            ->where('school_id', Filament::getTenant()->id)
+                        modifyQueryUsing: function (Builder $query): Builder {
+                            $tenantId = Filament::getTenant()?->id;
+
+                            return $tenantId
+                                ? $query->where('school_id', $tenantId)
+                                : $query->whereRaw('1 = 0');
+                        }
                     )
                     ->searchable()
                     ->preload()
@@ -269,7 +273,13 @@ class ApplicationsTable
                         Select::make('assigned_to')
                             ->label('Assign to Reviewer')
                             ->options(function () {
-                                return User::where('school_id', Filament::getTenant()->id)
+                                $tenantId = Filament::getTenant()?->id;
+
+                                if (! $tenantId) {
+                                    return [];
+                                }
+
+                                return User::where('school_id', $tenantId)
                                     ->where('is_active', true)
                                     ->whereHas('roles', function ($query) {
                                         $query->whereIn('name', ['school_admin', 'admission_admin']);
@@ -294,21 +304,7 @@ class ApplicationsTable
                     ->schema([
                         Select::make('status')
                             ->label('New Status')
-                            ->options([
-                                'draft' => 'Draft',
-                                'submitted' => 'Submitted',
-                                'under_review' => 'Under Review',
-                                'documents_verified' => 'Documents Verified',
-                                'interview_scheduled' => 'Interview Scheduled',
-                                'interview_completed' => 'Interview Completed',
-                                'payment_pending' => 'Payment Pending',
-                                'payment_verified' => 'Payment Verified',
-                                'accepted' => 'Accepted',
-                                'rejected' => 'Rejected',
-                                'waitlisted' => 'Waitlisted',
-                                'enrolled' => 'Enrolled',
-                                'withdrawn' => 'Withdrawn',
-                            ])
+                            ->options(fn (Application $record): array => $record->availableStatusOptions())
                             ->required()
                             ->native(false),
                         Textarea::make('status_notes')
@@ -316,6 +312,16 @@ class ApplicationsTable
                             ->rows(3),
                     ])
                     ->action(function (Application $record, array $data): void {
+                        if (! $record->canTransitionTo($data['status'])) {
+                            Notification::make()
+                                ->title('Invalid status transition')
+                                ->body('From ' . Application::statusLabelFor($record->status) . ' to ' . Application::statusLabelFor($data['status']) . ' is not allowed.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
                         $record->update([
                             'status' => $data['status'],
                             'status_notes' => $data['status_notes'],
@@ -333,7 +339,13 @@ class ApplicationsTable
                             Select::make('assigned_to')
                                 ->label('Assign to Reviewer')
                                 ->options(function () {
-                                    return User::where('school_id', Filament::getTenant()->id)
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (! $tenantId) {
+                                        return [];
+                                    }
+
+                                    return User::where('school_id', $tenantId)
                                         ->where('is_active', true)
                                         ->whereHas('roles', function ($query) {
                                             $query->whereIn('name', ['school_admin', 'admission_admin']);
@@ -358,26 +370,34 @@ class ApplicationsTable
                         ->schema([
                             Select::make('status')
                                 ->label('New Status')
-                                ->options([
-                                    'under_review' => 'Under Review',
-                                    'documents_verified' => 'Documents Verified',
-                                    'interview_scheduled' => 'Interview Scheduled',
-                                    'interview_completed' => 'Interview Completed',
-                                    'payment_pending' => 'Payment Pending',
-                                    'accepted' => 'Accepted',
-                                    'rejected' => 'Rejected',
-                                    'waitlisted' => 'Waitlisted',
-                                ])
+                                ->options(Application::statusOptions())
                                 ->required()
                                 ->native(false),
                         ])
                         ->action(function ($records, array $data): void {
-                            $records->each->update([
-                                'status' => $data['status'],
-                            ]);
+                            $updated = 0;
+                            $skipped = 0;
+
+                            foreach ($records as $record) {
+                                if (! $record->canTransitionTo($data['status'])) {
+                                    $skipped++;
+                                    continue;
+                                }
+
+                                $record->update([
+                                    'status' => $data['status'],
+                                ]);
+                                $updated++;
+                            }
+
+                            Notification::make()
+                                ->title('Bulk status update finished')
+                                ->body("Updated: {$updated}, Skipped: {$skipped}")
+                                ->success()
+                                ->send();
                         })
                         ->deselectRecordsAfterCompletion()
-                        ->successNotificationTitle('Status updated successfully'),
+                        ->successNotificationTitle('Bulk status update processed'),
 
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),

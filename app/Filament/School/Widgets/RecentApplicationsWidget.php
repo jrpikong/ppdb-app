@@ -38,8 +38,7 @@ class RecentApplicationsWidget extends BaseWidget
 
                 TextColumn::make('student_first_name')
                     ->label('Student Name')
-                    ->formatStateUsing(fn($state, $record): string => trim($record->student_first_name . ' ' . $record->student_last_name)
-                    )
+                    ->formatStateUsing(fn ($state, $record): string => trim($record->student_first_name . ' ' . $record->student_last_name))
                     ->searchable(['student_first_name', 'student_last_name'])
                     ->sortable(),
 
@@ -52,33 +51,40 @@ class RecentApplicationsWidget extends BaseWidget
                     ->label('Submitted')
                     ->dateTime('d M Y, H:i')
                     ->sortable()
-                    ->description(fn($record): string => $record->submitted_at?->diffForHumans() ?? '—'
-                    ),
+                    ->description(fn ($record): string => $record->submitted_at?->diffForHumans() ?? '-'),
 
                 TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'submitted' => 'Submitted',
                         'under_review' => 'Under Review',
+                        'documents_verified' => 'Documents Verified',
+                        'interview_scheduled' => 'Interview Scheduled',
+                        'interview_completed' => 'Interview Completed',
+                        'payment_pending' => 'Payment Pending',
+                        'payment_verified' => 'Payment Verified',
                         'accepted' => 'Accepted',
                         'rejected' => 'Rejected',
-                        'waitlist' => 'Waitlist',
+                        'waitlisted' => 'Waitlisted',
                         'enrolled' => 'Enrolled',
+                        'withdrawn' => 'Withdrawn',
                         default => ucfirst($state),
                     })
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'submitted' => 'info',
-                        'under_review', 'waitlist' => 'warning',
-                        'accepted' => 'success',
+                        'under_review', 'documents_verified' => 'warning',
+                        'interview_scheduled', 'interview_completed' => 'purple',
+                        'payment_pending', 'payment_verified' => 'indigo',
+                        'accepted', 'enrolled' => 'success',
                         'rejected' => 'danger',
-                        'enrolled' => 'primary',
+                        'waitlisted' => 'warning',
+                        'withdrawn' => 'gray',
                         default => 'gray',
                     }),
 
                 TextColumn::make('assigned_to')
                     ->label('Assigned To')
-                    ->formatStateUsing(fn($state, $record): string => $record->assignee?->name ?? '—'
-                    )
+                    ->formatStateUsing(fn ($state, $record): string => $record->assignedTo?->name ?? '-')
                     ->placeholder('Unassigned'),
             ])
             ->toolbarActions([

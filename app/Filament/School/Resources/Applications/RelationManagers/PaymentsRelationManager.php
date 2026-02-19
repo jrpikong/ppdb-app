@@ -43,9 +43,17 @@ class PaymentsRelationManager extends RelationManager
                             ->relationship(
                                 name: 'paymentType',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn ($query) => $query
-                                    ->where('school_id', Filament::getTenant()->id)
-                                    ->where('is_active', true)
+                                modifyQueryUsing: function ($query) {
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (! $tenantId) {
+                                        return $query->whereRaw('1 = 0');
+                                    }
+
+                                    return $query
+                                        ->where('school_id', $tenantId)
+                                        ->where('is_active', true);
+                                }
                             )
                             ->required()
                             ->searchable()
@@ -223,8 +231,13 @@ class PaymentsRelationManager extends RelationManager
                     ->relationship(
                         name: 'paymentType',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn ($query) => $query
-                            ->where('school_id', Filament::getTenant()->id)
+                        modifyQueryUsing: function ($query) {
+                            $tenantId = Filament::getTenant()?->id;
+
+                            return $tenantId
+                                ? $query->where('school_id', $tenantId)
+                                : $query->whereRaw('1 = 0');
+                        }
                     )
                     ->searchable()
                     ->preload(),

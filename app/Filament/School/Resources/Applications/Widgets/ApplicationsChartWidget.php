@@ -19,7 +19,41 @@ class ApplicationsChartWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $schoolId = Filament::getTenant()->id;
+        $schoolId = Filament::getTenant()?->id;
+
+        if (! $schoolId) {
+            return [
+                'datasets' => [
+                    [
+                        'label' => 'Submitted',
+                        'data' => [0, 0, 0, 0, 0, 0],
+                        'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                        'borderColor' => 'rgb(59, 130, 246)',
+                        'borderWidth' => 2,
+                        'fill' => true,
+                    ],
+                    [
+                        'label' => 'Accepted',
+                        'data' => [0, 0, 0, 0, 0, 0],
+                        'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
+                        'borderColor' => 'rgb(34, 197, 94)',
+                        'borderWidth' => 2,
+                        'fill' => true,
+                    ],
+                    [
+                        'label' => 'Rejected',
+                        'data' => [0, 0, 0, 0, 0, 0],
+                        'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
+                        'borderColor' => 'rgb(239, 68, 68)',
+                        'borderWidth' => 2,
+                        'fill' => true,
+                    ],
+                ],
+                'labels' => collect(range(5, 0))
+                    ->map(fn (int $i) => Carbon::now()->subMonths($i)->format('M Y'))
+                    ->all(),
+            ];
+        }
 
         $months = [];
         $submitted = [];

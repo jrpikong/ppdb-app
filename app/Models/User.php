@@ -230,6 +230,9 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             'has_super_admin_role' => $this->hasRole('super_admin'),
         ]);
 
+        if (! $this->is_active) {
+            return false;
+        }
         if ($panel->getId() === 'superadmin') {
             return $this->hasRole('super_admin');
         }

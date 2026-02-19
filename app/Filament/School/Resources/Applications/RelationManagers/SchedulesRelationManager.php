@@ -70,12 +70,20 @@ class SchedulesRelationManager extends RelationManager
                             ->relationship(
                                 name: 'interviewer',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn ($query) => $query
-                                    ->where('school_id', Filament::getTenant()->id)
-                                    ->where('is_active', true)
-                                    ->whereHas('roles', function ($q) {
-                                        $q->whereIn('name', ['school_admin', 'admission_admin']);
-                                    })
+                                modifyQueryUsing: function ($query) {
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (! $tenantId) {
+                                        return $query->whereRaw('1 = 0');
+                                    }
+
+                                    return $query
+                                        ->where('school_id', $tenantId)
+                                        ->where('is_active', true)
+                                        ->whereHas('roles', function ($q) {
+                                            $q->whereIn('name', ['school_admin', 'admission_admin']);
+                                        });
+                                }
                             )
                             ->searchable()
                             ->preload()
@@ -261,8 +269,13 @@ class SchedulesRelationManager extends RelationManager
                     ->relationship(
                         name: 'interviewer',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn ($query) => $query
-                            ->where('school_id', Filament::getTenant()->id)
+                        modifyQueryUsing: function ($query) {
+                            $tenantId = Filament::getTenant()?->id;
+
+                            return $tenantId
+                                ? $query->where('school_id', $tenantId)
+                                : $query->whereRaw('1 = 0');
+                        }
                     )
                     ->searchable()
                     ->preload(),

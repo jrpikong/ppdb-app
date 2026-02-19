@@ -22,6 +22,17 @@ class ApplicationsByStatusChart extends ChartWidget
     {
         $schoolId = Filament::getTenant()?->id;
 
+        if (! $schoolId) {
+            return [
+                'datasets' => [[
+                    'label' => 'Applications',
+                    'data' => [],
+                    'backgroundColor' => [],
+                ]],
+                'labels' => [],
+            ];
+        }
+
         $statuses = Application::where('school_id', $schoolId)
             ->selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
@@ -29,25 +40,35 @@ class ApplicationsByStatusChart extends ChartWidget
             ->toArray();
 
         $statusLabels = [
-            'draft'          => 'Draft',
-            'submitted'      => 'Submitted',
-            'under_review'   => 'Under Review',
-            'accepted'       => 'Accepted',
-            'rejected'       => 'Rejected',
-            'waitlist'       => 'Waitlist',
-            'enrolled'       => 'Enrolled',
-            'withdrawn'      => 'Withdrawn',
+            'draft' => 'Draft',
+            'submitted' => 'Submitted',
+            'under_review' => 'Under Review',
+            'documents_verified' => 'Documents Verified',
+            'interview_scheduled' => 'Interview Scheduled',
+            'interview_completed' => 'Interview Completed',
+            'payment_pending' => 'Payment Pending',
+            'payment_verified' => 'Payment Verified',
+            'accepted' => 'Accepted',
+            'rejected' => 'Rejected',
+            'waitlisted' => 'Waitlisted',
+            'enrolled' => 'Enrolled',
+            'withdrawn' => 'Withdrawn',
         ];
 
         $statusColors = [
-            'draft'          => '#9CA3AF', // gray
-            'submitted'      => '#3B82F6', // blue
-            'under_review'   => '#F59E0B', // amber
-            'accepted'       => '#10B981', // green
-            'rejected'       => '#EF4444', // red
-            'waitlist'       => '#F59E0B', // amber
-            'enrolled'       => '#8B5CF6', // purple
-            'withdrawn'      => '#6B7280', // gray
+            'draft' => '#9CA3AF',
+            'submitted' => '#3B82F6',
+            'under_review' => '#F59E0B',
+            'documents_verified' => '#F59E0B',
+            'interview_scheduled' => '#8B5CF6',
+            'interview_completed' => '#8B5CF6',
+            'payment_pending' => '#6366F1',
+            'payment_verified' => '#6366F1',
+            'accepted' => '#10B981',
+            'rejected' => '#EF4444',
+            'waitlisted' => '#FB923C',
+            'enrolled' => '#10B981',
+            'withdrawn' => '#6B7280',
         ];
 
         $labels = [];

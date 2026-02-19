@@ -13,7 +13,11 @@ class ApplicationStatsWidget extends BaseWidget
 {
     protected function getStats(): array
     {
-        $schoolId = Filament::getTenant()->id;
+        $schoolId = Filament::getTenant()?->id;
+
+        if (! $schoolId) {
+            return [];
+        }
 
         // Get counts by status
         $total = Application::where('school_id', $schoolId)->count();

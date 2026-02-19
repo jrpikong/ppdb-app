@@ -5,6 +5,7 @@ namespace App\Filament\School\Resources\Levels\Pages;
 use App\Filament\School\Resources\Levels\LevelResource;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
+use RuntimeException;
 
 class CreateLevel extends CreateRecord
 {
@@ -12,7 +13,13 @@ class CreateLevel extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['school_id'] = Filament::getTenant()->id;
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            throw new RuntimeException('Tenant context is not available.');
+        }
+
+        $data['school_id'] = $tenantId;
         return $data;
     }
 

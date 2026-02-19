@@ -18,7 +18,21 @@ class ApplicationsByStatusWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $schoolId = Filament::getTenant()->id;
+        $schoolId = Filament::getTenant()?->id;
+
+        if (! $schoolId) {
+            return [
+                'datasets' => [
+                    [
+                        'data' => [],
+                        'backgroundColor' => [],
+                        'borderColor' => 'rgb(255, 255, 255)',
+                        'borderWidth' => 2,
+                    ],
+                ],
+                'labels' => [],
+            ];
+        }
 
         $statuses = [
             'draft' => 'Draft',

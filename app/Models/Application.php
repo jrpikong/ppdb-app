@@ -65,6 +65,54 @@ class Application extends Model
 {
     use SoftDeletes;
 
+    public const STATUSES = [
+        'draft',
+        'submitted',
+        'under_review',
+        'documents_verified',
+        'interview_scheduled',
+        'interview_completed',
+        'payment_pending',
+        'payment_verified',
+        'accepted',
+        'rejected',
+        'waitlisted',
+        'enrolled',
+        'withdrawn',
+    ];
+
+    public const STATUS_LABELS = [
+        'draft' => 'Draft',
+        'submitted' => 'Submitted',
+        'under_review' => 'Under Review',
+        'documents_verified' => 'Documents Verified',
+        'interview_scheduled' => 'Interview Scheduled',
+        'interview_completed' => 'Interview Completed',
+        'payment_pending' => 'Payment Pending',
+        'payment_verified' => 'Payment Verified',
+        'accepted' => 'Accepted',
+        'rejected' => 'Rejected',
+        'waitlisted' => 'Waitlisted',
+        'enrolled' => 'Enrolled',
+        'withdrawn' => 'Withdrawn',
+    ];
+
+    public const STATUS_TRANSITIONS = [
+        'draft' => ['submitted', 'withdrawn'],
+        'submitted' => ['under_review', 'withdrawn'],
+        'under_review' => ['documents_verified', 'rejected', 'waitlisted', 'withdrawn'],
+        'documents_verified' => ['interview_scheduled', 'rejected', 'waitlisted', 'withdrawn'],
+        'interview_scheduled' => ['interview_completed', 'withdrawn'],
+        'interview_completed' => ['payment_pending', 'accepted', 'rejected', 'waitlisted', 'withdrawn'],
+        'payment_pending' => ['payment_verified', 'rejected', 'withdrawn'],
+        'payment_verified' => ['accepted', 'rejected', 'withdrawn'],
+        'accepted' => ['enrolled', 'withdrawn'],
+        'waitlisted' => ['accepted', 'rejected', 'withdrawn'],
+        'rejected' => [],
+        'enrolled' => [],
+        'withdrawn' => [],
+    ];
+
     protected $table = 'applications';
 
     protected $fillable = [
@@ -302,22 +350,7 @@ class Application extends Model
     protected function statusLabel(): Attribute
     {
         return Attribute::make(
-            get: fn() => match($this->status) {
-                'draft' => 'Draft',
-                'submitted' => 'Submitted',
-                'under_review' => 'Under Review',
-                'observation_scheduled' => 'Observation Scheduled',
-                'test_scheduled' => 'Test Scheduled',
-                'interview_scheduled' => 'Interview Scheduled',
-                'processing' => 'Processing Decision',
-                'accepted' => 'Accepted',
-                'rejected' => 'Rejected',
-                'waitlist' => 'Waitlist',
-                'enrolled' => 'Enrolled',
-                'withdrawn' => 'Withdrawn',
-                'cancelled' => 'Cancelled',
-                default => ucfirst($this->status),
-            }
+            get: fn() => self::STATUS_LABELS[$this->status] ?? ucfirst($this->status),
         );
     }
 
@@ -327,14 +360,14 @@ class Application extends Model
             get: fn() => match($this->status) {
                 'draft' => 'gray',
                 'submitted' => 'blue',
-                'under_review' => 'yellow',
-                'observation_scheduled', 'test_scheduled', 'interview_scheduled' => 'purple',
-                'processing' => 'orange',
+                'under_review', 'documents_verified' => 'yellow',
+                'interview_scheduled', 'interview_completed' => 'purple',
+                'payment_pending', 'payment_verified' => 'indigo',
                 'accepted' => 'green',
                 'rejected' => 'red',
-                'waitlist' => 'amber',
+                'waitlisted' => 'amber',
                 'enrolled' => 'emerald',
-                'withdrawn', 'cancelled' => 'gray',
+                'withdrawn' => 'gray',
                 default => 'gray',
             }
         );
@@ -385,6 +418,35 @@ class Application extends Model
     public function isEnrolled(): bool
     {
         return $this->status === 'enrolled';
+    }
+
+    public static function statusOptions(): array
+    {
+        return self::STATUS_LABELS;
+    }
+
+    public static function statusLabelFor(string $status): string
+    {
+        return self::STATUS_LABELS[$status] ?? ucfirst($status);
+    }
+
+    public function canTransitionTo(string $newStatus): bool
+    {
+        if ($newStatus === $this->status) {
+            return true;
+        }
+
+        return in_array($newStatus, self::STATUS_TRANSITIONS[$this->status] ?? [], true);
+    }
+
+    public function availableStatusOptions(): array
+    {
+        $allowed = self::STATUS_TRANSITIONS[$this->status] ?? [];
+        $available = array_unique([$this->status, ...$allowed]);
+
+        return collect(self::STATUS_LABELS)
+            ->only($available)
+            ->toArray();
     }
 
     public function canBeSubmitted(): bool

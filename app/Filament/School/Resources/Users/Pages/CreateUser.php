@@ -5,6 +5,7 @@ namespace App\Filament\School\Resources\Users\Pages;
 use App\Filament\School\Resources\Users\UserResource;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
+use RuntimeException;
 
 class CreateUser extends CreateRecord
 {
@@ -13,7 +14,13 @@ class CreateUser extends CreateRecord
     // ── Auto-assign school_id dari tenant aktif ───────────────────────────
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['school_id']          = Filament::getTenant()->id;
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            throw new RuntimeException('Tenant context is not available.');
+        }
+
+        $data['school_id']          = $tenantId;
         $data['email_verified_at']  = now(); // Auto-verify staff emails
         return $data;
     }
