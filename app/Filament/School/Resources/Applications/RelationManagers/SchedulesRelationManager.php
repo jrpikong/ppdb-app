@@ -37,6 +37,7 @@ class SchedulesRelationManager extends RelationManager
             ->schema([
                 Section::make('Schedule Details')
                     ->columns(2)
+                    ->columnSpanFull()
                     ->schema([
                         Forms\Components\Select::make('type')
                             ->label('Schedule Type')

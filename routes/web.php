@@ -14,4 +14,7 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('/secure-files/payments/{payment}/proof', [SecureFileController::class, 'paymentProof'])
         ->name('secure-files.payments.proof');
+
+    Route::get('/secure-files/applications/{application}/acceptance-letter', [SecureFileController::class, 'acceptanceLetter'])
+        ->name('secure-files.applications.acceptance-letter');
 });

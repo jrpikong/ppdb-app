@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\Application;
+use App\Models\Document;
 use App\Models\Payment;
 use App\Models\Schedule;
 use App\Notifications\ParentInAppNotification;
@@ -70,6 +71,38 @@ class ParentNotifier
             body: $body,
             url: route('filament.my.resources.payments.view', ['record' => $payment->id]),
             level: $event === 'rejected' ? 'danger' : 'success',
+        ));
+    }
+
+    public static function documentVerificationChanged(Document $document, string $event, ?string $notes = null): void
+    {
+        $document->loadMissing('application.user');
+        $application = $document->application;
+        $parent = $application?->user;
+
+        if (! $parent || ! $application) {
+            return;
+        }
+
+        $title = match ($event) {
+            'verified' => 'Document Verified',
+            'rejected' => 'Document Rejected',
+            default => 'Document Updated',
+        };
+
+        $body = sprintf(
+            'Your document %s for application %s has been %s.%s',
+            $document->type_label,
+            $application->application_number,
+            $event,
+            $notes ? ' Notes: ' . trim($notes) : ''
+        );
+
+        $parent->notify(new ParentInAppNotification(
+            title: $title,
+            body: $body,
+            url: route('filament.my.resources.applications.view', ['record' => $application->id]),
+            level: $event === 'verified' ? 'success' : 'danger',
         ));
     }
 

@@ -24,6 +24,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
+use App\Support\ParentNotifier;
 use Illuminate\Support\Facades\Storage;
 use Filament\Schemas\Schema;
 
@@ -242,6 +243,7 @@ class DocumentsRelationManager extends RelationManager
                             'verified_at' => now(),
                             'verified_by' => auth()->id(),
                         ]);
+                        ParentNotifier::documentVerificationChanged($record, 'verified', $data['verification_notes'] ?? null);
                     })
                     ->successNotificationTitle('Document verified successfully')
                     ->visible(fn ($record) => $record->verification_status === 'pending'),
@@ -263,6 +265,7 @@ class DocumentsRelationManager extends RelationManager
                             'verified_at' => now(),
                             'verified_by' => auth()->id(),
                         ]);
+                        ParentNotifier::documentVerificationChanged($record, 'rejected', $data['verification_notes'] ?? null);
                     })
                     ->successNotificationTitle('Document rejected')
                     ->visible(fn ($record) => $record->verification_status === 'pending'),
@@ -285,6 +288,7 @@ class DocumentsRelationManager extends RelationManager
                                         'verified_at' => now(),
                                         'verified_by' => auth()->id(),
                                     ]);
+                                    ParentNotifier::documentVerificationChanged($record, 'verified');
                                 }
                             });
                         })

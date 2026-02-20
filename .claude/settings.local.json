@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cmd /c \"composer require barryvdh/laravel-dompdf 2>&1\")",
+      "Bash(powershell -Command \"ls $env:USERPROFILE\\\\AppData\\\\Roaming\\\\Composer\\\\cache\\\\files\\\\barryvdh\\\\ 2>&1\")",
+      "Bash(powershell -Command \"php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Http\\\\Controllers\\\\SecureFileController.php'' 2>&1; php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\School\\\\Resources\\\\Applications\\\\Pages\\\\ViewApplication.php'' 2>&1; php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\My\\\\Resources\\\\Applications\\\\Pages\\\\ViewApplication.php'' 2>&1\")"
+    ]
+  }
+}
