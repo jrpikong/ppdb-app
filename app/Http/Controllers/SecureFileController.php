@@ -8,8 +8,8 @@ use App\Models\Application;
 use App\Models\Document;
 use App\Models\Payment;
 use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SecureFileController extends Controller
@@ -35,24 +35,7 @@ class SecureFileController extends Controller
     private function authorizeApplicationAccess(Application $application, ?User $user): void
     {
         abort_if(! $user, 403);
-        app(PermissionRegistrar::class)->setPermissionsTeamId((int) ($user->school_id ?: 0));
-
-        if ($user->hasRole('super_admin')) {
-            return;
-        }
-
-        if ($user->hasRole('parent') && $application->user_id === $user->id) {
-            return;
-        }
-
-        if (
-            $user->hasAnyRole(['school_admin', 'admission_admin', 'finance_admin'])
-            && (int) $user->school_id === (int) $application->school_id
-        ) {
-            return;
-        }
-
-        abort(403);
+        Gate::forUser($user)->authorize('viewSensitiveFiles', $application);
     }
 
     private function streamFile(string $path, string $downloadName): BinaryFileResponse

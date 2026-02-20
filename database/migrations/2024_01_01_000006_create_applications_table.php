@@ -11,7 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('applications', function (Blueprint $table) {
+        $driver = Schema::getConnection()->getDriverName();
+
+        Schema::create('applications', function (Blueprint $table) use ($driver) {
             $table->id();
 
             // Relations
@@ -105,10 +107,18 @@ return new class extends Migration
             $table->index(['school_id', 'status']);
             $table->index(['school_id', 'academic_year_id', 'level_id']);
             $table->index(['user_id', 'status']);
-            $table->fullText(
-                ['student_first_name', 'student_last_name', 'application_number'],
-                'applications_search_fulltext'
-            );
+            // SQLite test driver does not support fulltext index commands.
+            if (in_array($driver, ['mysql', 'mariadb', 'pgsql'], true)) {
+                $table->fullText(
+                    ['student_first_name', 'student_last_name', 'application_number'],
+                    'applications_search_fulltext'
+                );
+            } else {
+                $table->index(
+                    ['student_first_name', 'student_last_name', 'application_number'],
+                    'applications_search_idx'
+                );
+            }
         });
     }
 

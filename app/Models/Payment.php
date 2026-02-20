@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -222,7 +223,7 @@ class Payment extends Model
         $changed = false;
         $fromStatus = null;
 
-        DB::transaction(function () use ($toStatus, $attributes, &$changed, &$fromStatus): void {
+        DB::transaction(function () use ($toStatus, $attributes, $actorId, &$changed, &$fromStatus): void {
             /** @var self $locked */
             $locked = self::query()->whereKey($this->getKey())->lockForUpdate()->first();
 
@@ -235,6 +236,16 @@ class Payment extends Model
             if ($fromStatus === $toStatus) {
                 $changed = false;
                 return;
+            }
+
+            if ($actorId !== null) {
+                $actor = User::query()->find($actorId);
+
+                if (! $actor) {
+                    throw new RuntimeException('Status transition actor not found.');
+                }
+
+                Gate::forUser($actor)->authorize('transitionStatus', [$locked, $toStatus]);
             }
 
             if (! $locked->canTransitionTo($toStatus)) {

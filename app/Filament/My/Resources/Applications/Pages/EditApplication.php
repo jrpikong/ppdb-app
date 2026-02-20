@@ -10,6 +10,7 @@ use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Validation\ValidationException;
 
 class EditApplication extends EditRecord
 {
@@ -30,6 +31,17 @@ class EditApplication extends EditRecord
             ->title('Application saved')
             ->body('All your changes have been saved.')
             ->success();
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if ($this->getRecord()->status !== 'draft') {
+            throw ValidationException::withMessages([
+                'data.status' => 'Submitted applications are read-only.',
+            ]);
+        }
+
+        return $data;
     }
 
     // ── Header actions ────────────────────────────────────────────────────────

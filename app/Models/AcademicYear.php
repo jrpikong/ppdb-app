@@ -273,9 +273,10 @@ class AcademicYear extends Model
                       ->update(['is_active' => false]);
             }
 
-            // Auto-deactivate other academic years when this one is activated
+            // Auto-deactivate other academic years in the same school only.
             if ($year->is_active) {
-                static::where('id', '!=', $year->id)
+                static::where('school_id', $year->school_id)
+                    ->where('id', '!=', $year->id)
                     ->update(['is_active' => false]);
             }
         });

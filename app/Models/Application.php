@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasOne};
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Carbon\Carbon;
 use RuntimeException;
 
@@ -510,6 +511,16 @@ class Application extends Model
             if ($fromStatus === $toStatus) {
                 $changed = false;
                 return;
+            }
+
+            if ($actorId !== null) {
+                $actor = User::query()->find($actorId);
+
+                if (! $actor) {
+                    throw new RuntimeException('Status transition actor not found.');
+                }
+
+                Gate::forUser($actor)->authorize('transitionStatus', [$locked, $toStatus]);
             }
 
             if (! $locked->canTransitionTo($toStatus)) {

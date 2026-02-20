@@ -6,6 +6,7 @@ namespace App\Filament\My\Resources\Applications\Pages\Concerns;
 
 use App\Models\Application;
 use Filament\Notifications\Notification;
+use RuntimeException;
 
 trait CanSubmitApplication
 {
@@ -34,10 +35,27 @@ trait CanSubmitApplication
             return;
         }
 
-        $record->update([
-            'status' => 'submitted',
-            'submitted_at' => now(),
-        ]);
+        try {
+            $changed = $record->submit(auth()->id());
+        } catch (RuntimeException $e) {
+            Notification::make()
+                ->title('Application cannot be submitted')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if (! $changed) {
+            Notification::make()
+                ->title('Application already submitted')
+                ->body('This application has already been submitted.')
+                ->warning()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title('Application submitted')

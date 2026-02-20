@@ -25,6 +25,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use RuntimeException;
 
 class ApplicationsTable
 {
@@ -314,27 +315,39 @@ class ApplicationsTable
                     ])
                     ->action(function (Application $record, array $data): void {
                         $oldStatus = $record->status;
+                        $targetStatus = (string) $data['status'];
+                        $statusNotes = $data['status_notes'] ?? null;
 
-                        if (! $record->canTransitionTo($data['status'])) {
+                        try {
+                            $changed = $record->transitionStatus(
+                                toStatus: $targetStatus,
+                                notes: $statusNotes,
+                                actorId: auth()->id()
+                            );
+                        } catch (RuntimeException $e) {
                             Notification::make()
-                                ->title('Invalid status transition')
-                                ->body('From ' . Application::statusLabelFor($record->status) . ' to ' . Application::statusLabelFor($data['status']) . ' is not allowed.')
+                                ->title('Status update failed')
+                                ->body($e->getMessage())
                                 ->danger()
                                 ->send();
 
                             return;
                         }
 
-                        $record->update([
-                            'status' => $data['status'],
-                            'status_notes' => $data['status_notes'],
-                        ]);
+                        if (! $changed) {
+                            Notification::make()
+                                ->title('Status already up to date')
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
 
                         ParentNotifier::applicationStatusChanged(
                             application: $record->refresh(),
                             fromStatus: $oldStatus,
-                            toStatus: $data['status'],
-                            notes: $data['status_notes'] ?? null,
+                            toStatus: $targetStatus,
+                            notes: $statusNotes,
                         );
                     })
                     ->successNotificationTitle('Status updated successfully'),
@@ -384,37 +397,45 @@ class ApplicationsTable
                                 ->required()
                                 ->native(false),
                         ])
-                        ->action(function ($records, array $data): void {
-                            $updated = 0;
-                            $skipped = 0;
+                    ->action(function ($records, array $data): void {
+                        $updated = 0;
+                        $skipped = 0;
+                        $failed = 0;
+                        $targetStatus = (string) $data['status'];
 
-                            foreach ($records as $record) {
-                                $oldStatus = $record->status;
-
-                                if (! $record->canTransitionTo($data['status'])) {
-                                    $skipped++;
-                                    continue;
-                                }
-
-                                $record->update([
-                                    'status' => $data['status'],
-                                ]);
-
-                                ParentNotifier::applicationStatusChanged(
-                                    application: $record->refresh(),
-                                    fromStatus: $oldStatus,
-                                    toStatus: $data['status'],
+                        foreach ($records as $record) {
+                            $oldStatus = $record->status;
+                            try {
+                                $changed = $record->transitionStatus(
+                                    toStatus: $targetStatus,
+                                    notes: null,
+                                    actorId: auth()->id()
                                 );
-
-                                $updated++;
+                            } catch (RuntimeException) {
+                                $failed++;
+                                continue;
                             }
 
-                            Notification::make()
-                                ->title('Bulk status update finished')
-                                ->body("Updated: {$updated}, Skipped: {$skipped}")
-                                ->success()
-                                ->send();
-                        })
+                            if (! $changed) {
+                                $skipped++;
+                                continue;
+                            }
+
+                            ParentNotifier::applicationStatusChanged(
+                                application: $record->refresh(),
+                                fromStatus: $oldStatus,
+                                toStatus: $targetStatus,
+                            );
+
+                            $updated++;
+                        }
+
+                        Notification::make()
+                            ->title('Bulk status update finished')
+                            ->body("Updated: {$updated}, Skipped: {$skipped}, Failed: {$failed}")
+                            ->success()
+                            ->send();
+                    })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Bulk status update processed'),
 

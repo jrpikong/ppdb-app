@@ -219,7 +219,7 @@ class SecureFileAuthorizationTest extends TestCase
         $permissionRegistrar = app(PermissionRegistrar::class);
         $permissionRegistrar->setPermissionsTeamId($roleTeamId);
 
-        Role::firstOrCreate([
+        $role = Role::firstOrCreate([
             'name' => $roleName,
             'guard_name' => 'web',
             'school_id' => $roleTeamId,
@@ -230,7 +230,7 @@ class SecureFileAuthorizationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $user->assignRole($roleName);
+        $user->assignRole($role);
 
         return $user->refresh();
     }

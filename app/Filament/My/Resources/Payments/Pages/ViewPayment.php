@@ -13,6 +13,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use RuntimeException;
 
 class ViewPayment extends ViewRecord
 {
@@ -78,19 +79,34 @@ class ViewPayment extends ViewRecord
                         return;
                     }
 
-                    $record->update([
-                        'payment_date' => $data['payment_date'],
-                        'payment_method' => $data['payment_method'],
-                        'bank_name' => $data['bank_name'] ?? null,
-                        'account_number' => $data['account_number'] ?? null,
-                        'reference_number' => $data['reference_number'] ?? null,
-                        'proof_file' => $data['proof_file'],
-                        'notes' => $data['notes'] ?? null,
-                        'status' => 'submitted',
-                        'rejection_reason' => null,
-                        'verified_at' => null,
-                        'verified_by' => null,
-                    ]);
+                    try {
+                        $changed = $record->submitProof([
+                            'payment_date' => $data['payment_date'],
+                            'payment_method' => $data['payment_method'],
+                            'bank_name' => $data['bank_name'] ?? null,
+                            'account_number' => $data['account_number'] ?? null,
+                            'reference_number' => $data['reference_number'] ?? null,
+                            'proof_file' => $data['proof_file'],
+                            'notes' => $data['notes'] ?? null,
+                        ], auth()->id());
+                    } catch (RuntimeException $e) {
+                        Notification::make()
+                            ->title('Cannot submit payment proof')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    if (! $changed) {
+                        Notification::make()
+                            ->title('Payment proof already submitted')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
 
                     Notification::make()
                         ->title('Payment proof submitted')

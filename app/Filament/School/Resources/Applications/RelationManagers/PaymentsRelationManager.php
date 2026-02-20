@@ -19,12 +19,14 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Notifications\Notification;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class PaymentsRelationManager extends RelationManager
 {
@@ -301,9 +303,12 @@ class PaymentsRelationManager extends RelationManager
                     ->color('warning')
                     ->requiresConfirmation()
                     ->action(function ($record): void {
-                        $record->update([
-                            'status' => 'submitted',
-                        ]);
+                        try {
+                            $record->transitionStatus('submitted', [], auth()->id());
+                        } catch (RuntimeException $e) {
+                            Notification::make()->title('Cannot mark submitted')->body($e->getMessage())->danger()->send();
+                            return;
+                        }
                     })
                     ->visible(fn ($record): bool => $record->status === 'pending'),
 
@@ -317,13 +322,16 @@ class PaymentsRelationManager extends RelationManager
                             ->rows(3),
                     ])
                     ->action(function ($record, array $data): void {
-                        $record->update([
-                            'status' => 'verified',
-                            'notes' => $data['notes'] ?? $record->notes,
-                            'verified_at' => now(),
-                            'verified_by' => auth()->id(),
-                            'rejection_reason' => null,
-                        ]);
+                        try {
+                            $changed = $record->verify((int) auth()->id(), $data['notes'] ?? null);
+                        } catch (RuntimeException $e) {
+                            Notification::make()->title('Cannot verify payment')->body($e->getMessage())->danger()->send();
+                            return;
+                        }
+
+                        if (! $changed) {
+                            return;
+                        }
 
                         ParentNotifier::paymentStatusChanged($record->refresh(), 'verified', $data['notes'] ?? null);
                     })
@@ -341,12 +349,16 @@ class PaymentsRelationManager extends RelationManager
                             ->rows(3),
                     ])
                     ->action(function ($record, array $data): void {
-                        $record->update([
-                            'status' => 'rejected',
-                            'rejection_reason' => $data['rejection_reason'],
-                            'verified_at' => now(),
-                            'verified_by' => auth()->id(),
-                        ]);
+                        try {
+                            $changed = $record->reject((int) auth()->id(), (string) $data['rejection_reason']);
+                        } catch (RuntimeException $e) {
+                            Notification::make()->title('Cannot reject payment')->body($e->getMessage())->danger()->send();
+                            return;
+                        }
+
+                        if (! $changed) {
+                            return;
+                        }
 
                         ParentNotifier::paymentStatusChanged($record->refresh(), 'rejected', $data['rejection_reason']);
                     })
@@ -373,12 +385,16 @@ class PaymentsRelationManager extends RelationManager
                             ->rows(2),
                     ])
                     ->action(function ($record, array $data): void {
-                        $record->update([
-                            'status' => 'refunded',
-                            'refund_amount' => $data['refund_amount'],
-                            'refund_date' => $data['refund_date'],
-                            'refund_reason' => $data['refund_reason'],
-                        ]);
+                        try {
+                            $changed = $record->refund((float) $data['refund_amount'], (string) $data['refund_reason']);
+                        } catch (RuntimeException $e) {
+                            Notification::make()->title('Cannot refund payment')->body($e->getMessage())->danger()->send();
+                            return;
+                        }
+
+                        if (! $changed) {
+                            return;
+                        }
 
                         ParentNotifier::paymentStatusChanged($record->refresh(), 'refunded', $data['refund_reason']);
                     })
@@ -401,12 +417,15 @@ class PaymentsRelationManager extends RelationManager
                                     return;
                                 }
 
-                                $record->update([
-                                    'status' => 'verified',
-                                    'verified_at' => now(),
-                                    'verified_by' => auth()->id(),
-                                    'rejection_reason' => null,
-                                ]);
+                                try {
+                                    $changed = $record->verify((int) auth()->id());
+                                } catch (RuntimeException) {
+                                    return;
+                                }
+
+                                if (! $changed) {
+                                    return;
+                                }
 
                                 ParentNotifier::paymentStatusChanged($record->refresh(), 'verified');
                             });

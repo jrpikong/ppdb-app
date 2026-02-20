@@ -150,14 +150,14 @@ class ApplicationSeeder extends Seeder
 
         $applicationNumber = $this->generateApplicationNumber($school, $index);
 
-        $submittedAt = in_array($status, ['draft']) ? null : now()->subDays(rand(5, 30));
+        $submittedAt = in_array($status, ['draft'], true) ? null : now()->subDays(rand(5, 30));
         $reviewedAt = in_array($status, ['under_review', 'documents_verified', 'interview_scheduled', 'interview_completed', 'payment_pending', 'payment_verified', 'accepted', 'enrolled', 'rejected'])
-            ? $submittedAt?->addDays(rand(2, 5))
+            ? $submittedAt?->copy()->addDays(rand(2, 5))
             : null;
         $decisionMadeAt = in_array($status, ['accepted', 'enrolled', 'rejected'])
-            ? $reviewedAt?->addDays(rand(3, 7))
+            ? $reviewedAt?->copy()->addDays(rand(3, 7))
             : null;
-        $enrolledAt = $status === 'enrolled' ? $decisionMadeAt?->addDays(rand(1, 3)) : null;
+        $enrolledAt = $status === 'enrolled' ? $decisionMadeAt?->copy()->addDays(rand(1, 3)) : null;
 
         // Assign reviewer for applications in review
         $assignedTo = in_array($status, ['under_review', 'documents_verified', 'interview_scheduled', 'interview_completed', 'payment_pending', 'payment_verified', 'accepted', 'enrolled', 'rejected'])
@@ -357,14 +357,14 @@ class ApplicationSeeder extends Seeder
         $paymentTypes = PaymentType::where('school_id', $school->id)->get();
 
         // Pre-submission payment (Saving Seat)
-        if (in_array($status, ['under_review', 'documents_verified', 'interview_scheduled', 'interview_completed', 'payment_pending', 'payment_verified', 'accepted', 'enrolled', 'rejected'])) {
+        if (in_array($status, ['under_review', 'documents_verified', 'interview_scheduled', 'interview_completed', 'payment_pending', 'payment_verified', 'accepted', 'enrolled', 'rejected'], true)) {
             $savingSeatType = $paymentTypes->where('code', 'SAVING_SEAT')->first();
 
             if ($savingSeatType) {
                 Payment::create([
                     'application_id' => $application->id,
                     'payment_type_id' => $savingSeatType->id,
-                    'transaction_code' => $this->generateTransactionCode($school, 1),
+                    'transaction_code' => $this->generateTransactionCode($school, $application->id, 1),
                     'amount' => $savingSeatType->amount,
                     'currency' => 'IDR',
                     'payment_date' => $application->submitted_at?->addDay() ?? now(),
@@ -381,8 +381,8 @@ class ApplicationSeeder extends Seeder
         }
 
         // Post-acceptance payments
-        if (in_array($status, ['payment_pending', 'payment_verified', 'accepted', 'enrolled'])) {
-            $postAcceptanceTypes = $paymentTypes->whereIn('code', ['REGISTRATION_FEE', 'DEVELOPMENT_FEE'])->all();
+        if (in_array($status, ['payment_pending', 'payment_verified', 'accepted', 'enrolled'], true)) {
+            $postAcceptanceTypes = $paymentTypes->whereIn('code', ['REGISTRATION', 'DEVELOPMENT'])->all();
 
             foreach ($postAcceptanceTypes as $index => $paymentType) {
                 $isPaid = in_array($status, ['payment_verified', 'accepted', 'enrolled']);
@@ -390,7 +390,7 @@ class ApplicationSeeder extends Seeder
                 Payment::create([
                     'application_id' => $application->id,
                     'payment_type_id' => $paymentType->id,
-                    'transaction_code' => $this->generateTransactionCode($school, $index + 2),
+                    'transaction_code' => $this->generateTransactionCode($school, $application->id, $index + 2),
                     'amount' => $paymentType->amount,
                     'currency' => 'IDR',
                     'payment_date' => $isPaid ? ($application->decision_made_at?->addDays(rand(1, 3)) ?? now()) : now(),
@@ -410,13 +410,13 @@ class ApplicationSeeder extends Seeder
 
         // Enrollment payments
         if ($status === 'enrolled') {
-            $enrollmentTypes = $paymentTypes->whereIn('code', ['UNIFORM_PACKAGE', 'BOOK_PACKAGE', 'TECHNOLOGY_FEE'])->all();
+            $enrollmentTypes = $paymentTypes->whereIn('code', ['UNIFORM', 'BOOKS', 'TECHNOLOGY'])->all();
 
             foreach ($enrollmentTypes as $index => $paymentType) {
                 Payment::create([
                     'application_id' => $application->id,
                     'payment_type_id' => $paymentType->id,
-                    'transaction_code' => $this->generateTransactionCode($school, $index + 5),
+                    'transaction_code' => $this->generateTransactionCode($school, $application->id, $index + 5),
                     'amount' => $paymentType->amount,
                     'currency' => 'IDR',
                     'payment_date' => $application->enrolled_at?->subDays(rand(1, 2)) ?? now(),
@@ -433,10 +433,10 @@ class ApplicationSeeder extends Seeder
         }
     }
 
-    private function generateTransactionCode(School $school, int $sequence): string
+    private function generateTransactionCode(School $school, int $applicationId, int $sequence): string
     {
-        $date = date('Ymd');
-        return sprintf('%s-PAY-%s-%04d', $school->code, $date, $sequence);
+        $date = now()->format('Ymd');
+        return sprintf('%s-PAY-%s-%04d-%02d', $school->code, $date, $applicationId, $sequence);
     }
 
     /**
@@ -462,6 +462,7 @@ class ApplicationSeeder extends Seeder
                 'application_id' => $application->id,
                 'type' => 'observation',
                 'scheduled_date' => $scheduleDate,
+                'scheduled_time' => '09:00:00',
                 'duration_minutes' => 90,
                 'interviewer_id' => $interviewer->id,
                 'location' => 'Early Years Classroom',
@@ -484,6 +485,7 @@ class ApplicationSeeder extends Seeder
                 'application_id' => $application->id,
                 'type' => 'test',
                 'scheduled_date' => $scheduleDate,
+                'scheduled_time' => '10:00:00',
                 'duration_minutes' => 120,
                 'interviewer_id' => $interviewer->id,
                 'location' => 'Assessment Room 2',
@@ -507,6 +509,7 @@ class ApplicationSeeder extends Seeder
                 'application_id' => $application->id,
                 'type' => 'interview',
                 'scheduled_date' => $scheduleDate,
+                'scheduled_time' => '13:00:00',
                 'duration_minutes' => 60,
                 'interviewer_id' => $interviewer->id,
                 'location' => $isOnline ? 'https://zoom.us/j/' . rand(1000000000, 9999999999) : 'Principal Office',
@@ -529,25 +532,30 @@ class ApplicationSeeder extends Seeder
         if ($application->status === 'draft') return;
 
         $bloodTypes = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'unknown'];
+        $hasFoodAllergies = rand(1, 10) > 8;
+        $hasMedicalConditions = rand(1, 10) > 9;
+        $requiresDailyMedication = $hasMedicalConditions && rand(1, 10) > 6;
+        $hasDietaryRestrictions = rand(1, 10) > 8;
+        $immunizationsUpToDate = rand(1, 10) > 2;
 
         MedicalRecord::create([
             'application_id' => $application->id,
             'blood_type' => $bloodTypes[array_rand($bloodTypes)],
             'height' => rand(90, 160), // cm based on age
             'weight' => rand(15, 60), // kg based on age
-            'has_food_allergies' => rand(1, 10) > 8,
-            'food_allergies_details' => rand(1, 10) > 8 ? 'Peanuts, Shellfish' : null,
-            'has_medical_conditions' => rand(1, 10) > 9,
-            'medical_conditions' => rand(1, 10) > 9 ? $this->getMedicalCondition() : null,
-            'requires_daily_medication' => rand(1, 10) > 9,
-            'daily_medications' => rand(1, 10) > 9 ? 'As prescribed by family doctor' : null,
-            'has_dietary_restrictions' => rand(1, 10) > 8,
-            'dietary_restrictions' => rand(1, 10) > 8 ? 'Vegetarian / Halal only' : null,
+            'has_food_allergies' => $hasFoodAllergies,
+            'food_allergies_details' => $hasFoodAllergies ? 'Peanuts, Shellfish' : null,
+            'has_medical_conditions' => $hasMedicalConditions,
+            'medical_conditions' => $hasMedicalConditions ? $this->getMedicalCondition() : null,
+            'requires_daily_medication' => $requiresDailyMedication,
+            'daily_medications' => $requiresDailyMedication ? 'As prescribed by family doctor' : null,
+            'has_dietary_restrictions' => $hasDietaryRestrictions,
+            'dietary_restrictions' => $hasDietaryRestrictions ? 'Vegetarian / Halal only' : null,
             'has_special_needs' => !empty($application->special_needs),
             'special_needs_description' => $application->special_needs,
             'requires_learning_support' => !empty($application->learning_support_required),
             'learning_support_details' => $application->learning_support_required,
-            'immunizations_up_to_date' => rand(1, 10) > 2, // 80% up to date
+            'immunizations_up_to_date' => $immunizationsUpToDate, // 80% up to date
             'emergency_contact_name' => 'Emergency Contact - ' . $application->student_last_name,
             'emergency_contact_phone' => $this->generateIndonesianPhone(),
             'emergency_contact_relationship' => rand(0, 1) === 1 ? 'Father' : 'Mother',
@@ -578,7 +586,7 @@ class ApplicationSeeder extends Seeder
     private function calculateBirthDate(Level $level): Carbon
     {
         // Calculate appropriate birth date based on level's age range
-        $targetAge = ($level->min_age + $level->max_age) / 2;
+        $targetAge = (((float) $level->age_min) + ((float) $level->age_max)) / 2;
         return now()->subYears((int)$targetAge)->subMonths(rand(0, 11));
     }
 

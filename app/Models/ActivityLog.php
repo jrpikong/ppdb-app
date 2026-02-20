@@ -220,7 +220,7 @@ class ActivityLog extends Model
 
     // ==================== HELPER METHODS ====================
 
-    public function hasChanges(): bool
+    public function hasPropertyChanges(): bool
     {
         return !empty($this->changes);
     }

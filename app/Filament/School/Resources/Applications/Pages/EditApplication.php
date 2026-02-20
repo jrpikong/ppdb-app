@@ -3,6 +3,7 @@
 namespace App\Filament\School\Resources\Applications\Pages;
 
 use App\Filament\School\Resources\Applications\ApplicationResource;
+use App\Models\ActivityLog;
 use App\Models\Application;
 use App\Support\ParentNotifier;
 use Filament\Actions\DeleteAction;
@@ -73,6 +74,23 @@ class EditApplication extends EditRecord
             fromStatus: $this->oldStatusBeforeSave ?? (string) $record->status,
             toStatus: (string) $record->status,
             notes: $record->status_notes,
+        );
+
+        ActivityLog::logActivity(
+            description: sprintf(
+                'Application status changed: %s -> %s',
+                Application::statusLabelFor($this->oldStatusBeforeSave ?? (string) $record->status),
+                Application::statusLabelFor((string) $record->status)
+            ),
+            subject: $record,
+            logName: 'application',
+            event: 'status_changed',
+            properties: [
+                'from_status' => $this->oldStatusBeforeSave,
+                'to_status' => (string) $record->status,
+                'notes' => $record->status_notes,
+            ],
+            userId: auth()->id()
         );
     }
 }
