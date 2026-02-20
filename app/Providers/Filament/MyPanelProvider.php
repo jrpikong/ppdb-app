@@ -64,7 +64,7 @@ class MyPanelProvider extends PanelProvider
             ->brandName('VIS My Admissions')
             ->brandLogo(asset('logo/logo.webp'))
             ->brandLogoHeight('2rem')
-            ->favicon(asset('images/favicon.png'))
+            ->favicon(asset('site-logo-vis-150x150.png'))
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 'Admissions',

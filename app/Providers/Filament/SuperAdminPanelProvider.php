@@ -55,7 +55,7 @@ class SuperAdminPanelProvider extends PanelProvider
             ->brandName('VIS Admin')
             ->brandLogo(asset('logo/logo.webp')) // Add your logo
             ->brandLogoHeight('2rem')
-            ->favicon(asset('images/favicon.png'))
+            ->favicon(asset('site-logo-vis-150x150.png'))
             ->discoverResources(in: app_path('Filament/SuperAdmin/Resources'), for: 'App\\Filament\\SuperAdmin\\Resources')
             ->discoverPages(in: app_path('Filament/SuperAdmin/Pages'), for: 'App\\Filament\\SuperAdmin\\Pages')
             ->pages([
