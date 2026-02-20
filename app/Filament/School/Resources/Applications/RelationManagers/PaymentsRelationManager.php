@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\School\Resources\Applications\RelationManagers;
 
+use App\Support\ParentNotifier;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -22,6 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
 use Filament\Facades\Filament;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentsRelationManager extends RelationManager
@@ -37,13 +39,14 @@ class PaymentsRelationManager extends RelationManager
         return $schema
             ->schema([
                 Section::make('Payment Information')
+                    ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('payment_type_id')
                             ->label('Payment Type')
                             ->relationship(
                                 name: 'paymentType',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: function ($query) {
+                                modifyQueryUsing: function (Builder $query): Builder {
                                     $tenantId = Filament::getTenant()?->id;
 
                                     if (! $tenantId) {
@@ -59,12 +62,15 @@ class PaymentsRelationManager extends RelationManager
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->afterStateUpdated(function (Set $set, $state) {
-                                if ($state) {
-                                    $paymentType = \App\Models\PaymentType::find($state);
-                                    $set('amount', $paymentType?->amount);
-                                    $set('currency', $paymentType?->currency ?? 'IDR');
+                            ->afterStateUpdated(function (Set $set, $state): void {
+                                if (! $state) {
+                                    return;
                                 }
+
+                                $paymentType = \App\Models\PaymentType::find($state);
+
+                                $set('amount', $paymentType?->amount);
+                                $set('currency', $paymentType?->currency ?? 'IDR');
                             })
                             ->columnSpan(2),
 
@@ -88,6 +94,12 @@ class PaymentsRelationManager extends RelationManager
                             ->native(false)
                             ->columnSpan(1),
 
+                        Forms\Components\DatePicker::make('payment_date')
+                            ->label('Payment Date')
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->required(),
+
                         Forms\Components\Select::make('payment_method')
                             ->label('Payment Method')
                             ->options([
@@ -99,38 +111,44 @@ class PaymentsRelationManager extends RelationManager
                                 'cash' => 'Cash',
                                 'other' => 'Other',
                             ])
-                            ->native(false)
-                            ->columnSpan(1),
+                            ->native(false),
 
-                        Forms\Components\DateTimePicker::make('paid_at')
-                            ->label('Payment Date')
-                            ->native(false)
-                            ->displayFormat('d/m/Y H:i')
-                            ->columnSpan(1),
+                        Forms\Components\TextInput::make('bank_name')
+                            ->label('Bank Name')
+                            ->maxLength(255),
 
-                        Forms\Components\FileUpload::make('payment_proof')
+                        Forms\Components\TextInput::make('account_number')
+                            ->label('Account Number')
+                            ->maxLength(255),
+
+                        Forms\Components\TextInput::make('reference_number')
+                            ->label('Reference Number')
+                            ->maxLength(255),
+
+                        Forms\Components\FileUpload::make('proof_file')
                             ->label('Payment Proof')
-                            ->disk('public')
+                            ->disk('local')
                             ->directory('payments')
-                            ->visibility('private')
-                            ->maxSize(5120)
+                            ->maxSize(10240)
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'])
-                            ->helperText('Maximum file size: 5MB. Allowed types: PDF, JPG, PNG')
+                            ->helperText('Maximum file size: 10MB. Allowed types: PDF, JPG, PNG')
                             ->columnSpanFull(),
 
                         Forms\Components\Textarea::make('notes')
                             ->label('Notes')
                             ->rows(2)
                             ->columnSpanFull(),
-                    ])
-                    ->columns(2),
+                    ]),
 
-                Section::make('Verification')
+                Section::make('Verification & Refund')
+                    ->columns(2)
+                    ->collapsible()
                     ->schema([
                         Forms\Components\Select::make('status')
                             ->label('Payment Status')
                             ->options([
                                 'pending' => 'Pending',
+                                'submitted' => 'Submitted',
                                 'verified' => 'Verified',
                                 'rejected' => 'Rejected',
                                 'refunded' => 'Refunded',
@@ -138,75 +156,89 @@ class PaymentsRelationManager extends RelationManager
                             ->default('pending')
                             ->required()
                             ->native(false)
-                            ->live()
-                            ->columnSpan(1),
+                            ->live(),
 
                         Forms\Components\DateTimePicker::make('verified_at')
                             ->label('Verified At')
                             ->native(false)
                             ->disabled()
-                            ->visible(fn (Get $get) => $get('status') === 'verified')
-                            ->columnSpan(1),
+                            ->visible(fn (Get $get): bool => in_array((string) $get('status'), ['verified', 'rejected', 'refunded'], true)),
 
-                        Forms\Components\Textarea::make('verification_notes')
-                            ->label('Verification Notes')
+                        Forms\Components\Textarea::make('rejection_reason')
+                            ->label('Rejection Reason')
                             ->rows(2)
-                            ->visible(fn (Get $get) => in_array($get('status'), ['verified', 'rejected']))
+                            ->visible(fn (Get $get): bool => $get('status') === 'rejected')
                             ->columnSpanFull(),
 
-                        Forms\Components\DateTimePicker::make('refunded_at')
-                            ->label('Refunded At')
+                        Forms\Components\TextInput::make('refund_amount')
+                            ->label('Refund Amount')
+                            ->numeric()
+                            ->minValue(0)
+                            ->visible(fn (Get $get): bool => $get('status') === 'refunded'),
+
+                        Forms\Components\DatePicker::make('refund_date')
+                            ->label('Refund Date')
                             ->native(false)
-                            ->visible(fn (Get $get) => $get('status') === 'refunded')
+                            ->visible(fn (Get $get): bool => $get('status') === 'refunded'),
+
+                        Forms\Components\Textarea::make('refund_reason')
+                            ->label('Refund Reason')
+                            ->rows(2)
+                            ->visible(fn (Get $get): bool => $get('status') === 'refunded')
                             ->columnSpanFull(),
-                    ])
-                    ->columns(2)
-                    ->collapsible(),
+                    ]),
             ]);
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('payment_type_id')
+            ->recordTitleAttribute('transaction_code')
             ->columns([
+                Tables\Columns\TextColumn::make('transaction_code')
+                    ->label('Transaction')
+                    ->searchable()
+                    ->sortable()
+                    ->weight(FontWeight::Bold),
+
                 Tables\Columns\TextColumn::make('paymentType.name')
                     ->label('Payment Type')
                     ->sortable()
-                    ->searchable()
-                    ->weight(FontWeight::Bold),
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Amount')
-                    ->money('IDR', locale: 'id')
+                    ->formatStateUsing(fn ($state, $record): string => $record->currency . ' ' . number_format((float) $state, 0, ',', '.'))
                     ->sortable()
                     ->weight(FontWeight::Bold)
                     ->color('success'),
 
-                Tables\Columns\TextColumn::make('payment_method')
-                    ->label('Method')
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => (string)str($state)->replace('_', ' ')->title()),
-
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->sortable()
+                    ->formatStateUsing(fn (string $state): string => ucfirst($state))
                     ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
+                        'pending' => 'gray',
+                        'submitted' => 'warning',
                         'verified' => 'success',
                         'rejected' => 'danger',
                         'refunded' => 'info',
                         default => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    }),
 
-                Tables\Columns\TextColumn::make('paid_at')
-                    ->label('Paid Date')
-                    ->dateTime('d M Y')
+                Tables\Columns\TextColumn::make('payment_date')
+                    ->label('Payment Date')
+                    ->date('d M Y')
                     ->sortable()
-                    ->placeholder('Not paid'),
+                    ->placeholder('-'),
 
-                Tables\Columns\TextColumn::make('verifiedBy.name')
+                Tables\Columns\TextColumn::make('payment_method')
+                    ->label('Method')
+                    ->formatStateUsing(fn (?string $state): string => $state ? (string) str($state)->replace('_', ' ')->title() : '-')
+                    ->placeholder('-')
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('verifier.name')
                     ->label('Verified By')
                     ->placeholder('Not verified')
                     ->limit(25)
@@ -215,15 +247,9 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('verified_at')
                     ->label('Verified At')
                     ->dateTime('d M Y H:i')
-                    ->placeholder('N/A')
+                    ->placeholder('-')
                     ->sortable()
                     ->toggleable(),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime('d M Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('payment_type_id')
@@ -231,7 +257,7 @@ class PaymentsRelationManager extends RelationManager
                     ->relationship(
                         name: 'paymentType',
                         titleAttribute: 'name',
-                        modifyQueryUsing: function ($query) {
+                        modifyQueryUsing: function (Builder $query): Builder {
                             $tenantId = Filament::getTenant()?->id;
 
                             return $tenantId
@@ -245,63 +271,71 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => 'Pending',
+                        'submitted' => 'Submitted',
                         'verified' => 'Verified',
                         'rejected' => 'Rejected',
                         'refunded' => 'Refunded',
                     ])
                     ->multiple(),
-
-                Tables\Filters\SelectFilter::make('payment_method')
-                    ->options([
-                        'bank_transfer' => 'Bank Transfer',
-                        'virtual_account' => 'Virtual Account',
-                        'credit_card' => 'Credit Card',
-                        'debit_card' => 'Debit Card',
-                        'e_wallet' => 'E-Wallet',
-                        'cash' => 'Cash',
-                        'other' => 'Other',
-                    ])
-                    ->multiple(),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->icon('heroicon-o-plus'),
+                    ->icon('heroicon-o-plus')
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['status'] = $data['status'] ?? 'pending';
+                        return $data;
+                    }),
             ])
             ->recordActions([
                 Action::make('viewProof')
                     ->label('View Proof')
                     ->icon('heroicon-o-document-magnifying-glass')
                     ->color('info')
-                    ->url(fn ($record) => $record->payment_proof ? Storage::disk('public')->url($record->payment_proof) : null)
+                    ->url(fn ($record): ?string => $record->proof_file ? route('secure-files.payments.proof', ['payment' => $record->id]) : null)
                     ->openUrlInNewTab()
-                    ->visible(fn ($record) => $record->payment_proof),
+                    ->visible(fn ($record): bool => filled($record->proof_file)),
+
+                Action::make('markSubmitted')
+                    ->label('Mark Submitted')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->action(function ($record): void {
+                        $record->update([
+                            'status' => 'submitted',
+                        ]);
+                    })
+                    ->visible(fn ($record): bool => $record->status === 'pending'),
 
                 Action::make('verify')
                     ->label('Verify')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->schema([
-                        Forms\Components\Textarea::make('verification_notes')
+                        Forms\Components\Textarea::make('notes')
                             ->label('Verification Notes')
                             ->rows(3),
                     ])
                     ->action(function ($record, array $data): void {
                         $record->update([
                             'status' => 'verified',
-                            'verification_notes' => $data['verification_notes'],
+                            'notes' => $data['notes'] ?? $record->notes,
                             'verified_at' => now(),
                             'verified_by' => auth()->id(),
+                            'rejection_reason' => null,
                         ]);
+
+                        ParentNotifier::paymentStatusChanged($record->refresh(), 'verified', $data['notes'] ?? null);
                     })
                     ->successNotificationTitle('Payment verified successfully')
-                    ->visible(fn ($record) => $record->status === 'pending'),
+                    ->visible(fn ($record): bool => $record->status === 'submitted'),
 
                 Action::make('reject')
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->schema([
-                        Forms\Components\Textarea::make('verification_notes')
+                        Forms\Components\Textarea::make('rejection_reason')
                             ->label('Rejection Reason')
                             ->required()
                             ->rows(3),
@@ -309,27 +343,47 @@ class PaymentsRelationManager extends RelationManager
                     ->action(function ($record, array $data): void {
                         $record->update([
                             'status' => 'rejected',
-                            'verification_notes' => $data['verification_notes'],
+                            'rejection_reason' => $data['rejection_reason'],
                             'verified_at' => now(),
                             'verified_by' => auth()->id(),
                         ]);
+
+                        ParentNotifier::paymentStatusChanged($record->refresh(), 'rejected', $data['rejection_reason']);
                     })
                     ->successNotificationTitle('Payment rejected')
-                    ->visible(fn ($record) => $record->status === 'pending'),
+                    ->visible(fn ($record): bool => $record->status === 'submitted'),
 
                 Action::make('refund')
                     ->label('Refund')
                     ->icon('heroicon-o-arrow-uturn-left')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->action(function ($record): void {
+                    ->color('info')
+                    ->schema([
+                        Forms\Components\TextInput::make('refund_amount')
+                            ->label('Refund Amount')
+                            ->numeric()
+                            ->required(),
+                        Forms\Components\DatePicker::make('refund_date')
+                            ->label('Refund Date')
+                            ->native(false)
+                            ->required()
+                            ->default(today()),
+                        Forms\Components\Textarea::make('refund_reason')
+                            ->label('Refund Reason')
+                            ->required()
+                            ->rows(2),
+                    ])
+                    ->action(function ($record, array $data): void {
                         $record->update([
                             'status' => 'refunded',
-                            'refunded_at' => now(),
+                            'refund_amount' => $data['refund_amount'],
+                            'refund_date' => $data['refund_date'],
+                            'refund_reason' => $data['refund_reason'],
                         ]);
+
+                        ParentNotifier::paymentStatusChanged($record->refresh(), 'refunded', $data['refund_reason']);
                     })
                     ->successNotificationTitle('Payment refunded')
-                    ->visible(fn ($record) => $record->status === 'verified'),
+                    ->visible(fn ($record): bool => $record->status === 'verified'),
 
                 ViewAction::make(),
                 EditAction::make(),
@@ -342,14 +396,19 @@ class PaymentsRelationManager extends RelationManager
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($records): void {
-                            $records->each(function ($record) {
-                                if ($record->status === 'pending') {
-                                    $record->update([
-                                        'status' => 'verified',
-                                        'verified_at' => now(),
-                                        'verified_by' => auth()->id(),
-                                    ]);
+                            $records->each(function ($record): void {
+                                if ($record->status !== 'submitted') {
+                                    return;
                                 }
+
+                                $record->update([
+                                    'status' => 'verified',
+                                    'verified_at' => now(),
+                                    'verified_by' => auth()->id(),
+                                    'rejection_reason' => null,
+                                ]);
+
+                                ParentNotifier::paymentStatusChanged($record->refresh(), 'verified');
                             });
                         })
                         ->deselectRecordsAfterCompletion()

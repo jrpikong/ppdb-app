@@ -33,8 +33,10 @@ class MyPanelProvider extends PanelProvider
             ->registration(Register::class)
             ->emailVerification()
             ->profile()
+            ->globalSearch(false)
             ->passwordReset()
             ->emailVerification()
+            ->databaseNotifications()
             ->discoverResources(in: app_path('Filament/My/Resources'), for: 'App\\Filament\\My\\Resources')
             ->discoverPages(in: app_path('Filament/My/Pages'), for: 'App\\Filament\\My\\Pages')
             ->pages([

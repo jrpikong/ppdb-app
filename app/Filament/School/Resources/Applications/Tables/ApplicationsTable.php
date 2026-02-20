@@ -4,6 +4,7 @@ namespace App\Filament\School\Resources\Applications\Tables;
 
 use App\Models\Application;
 use App\Models\User;
+use App\Support\ParentNotifier;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -312,6 +313,8 @@ class ApplicationsTable
                             ->rows(3),
                     ])
                     ->action(function (Application $record, array $data): void {
+                        $oldStatus = $record->status;
+
                         if (! $record->canTransitionTo($data['status'])) {
                             Notification::make()
                                 ->title('Invalid status transition')
@@ -326,6 +329,13 @@ class ApplicationsTable
                             'status' => $data['status'],
                             'status_notes' => $data['status_notes'],
                         ]);
+
+                        ParentNotifier::applicationStatusChanged(
+                            application: $record->refresh(),
+                            fromStatus: $oldStatus,
+                            toStatus: $data['status'],
+                            notes: $data['status_notes'] ?? null,
+                        );
                     })
                     ->successNotificationTitle('Status updated successfully'),
             ])
@@ -379,6 +389,8 @@ class ApplicationsTable
                             $skipped = 0;
 
                             foreach ($records as $record) {
+                                $oldStatus = $record->status;
+
                                 if (! $record->canTransitionTo($data['status'])) {
                                     $skipped++;
                                     continue;
@@ -387,6 +399,13 @@ class ApplicationsTable
                                 $record->update([
                                     'status' => $data['status'],
                                 ]);
+
+                                ParentNotifier::applicationStatusChanged(
+                                    application: $record->refresh(),
+                                    fromStatus: $oldStatus,
+                                    toStatus: $data['status'],
+                                );
+
                                 $updated++;
                             }
 

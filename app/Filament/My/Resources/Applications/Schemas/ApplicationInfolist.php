@@ -16,8 +16,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Facades\Storage;
-
 class ApplicationInfolist
 {
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -403,7 +401,7 @@ class ApplicationInfolist
                                 ->trueColor('danger')
                                 ->falseColor('gray'),
 
-                            TextEntry::make('medicalRecord.medical_conditions_details')
+                            TextEntry::make('medicalRecord.medical_conditions')
                                 ->label('Details')
                                 ->placeholder('—')
                                 ->color('neutral'),
@@ -414,7 +412,7 @@ class ApplicationInfolist
                                 ->trueColor('warning')
                                 ->falseColor('gray'),
 
-                            TextEntry::make('medicalRecord.medications_details')
+                            TextEntry::make('medicalRecord.daily_medications')
                                 ->label('Medication Details')
                                 ->placeholder('—')
                                 ->color('neutral'),
@@ -425,7 +423,7 @@ class ApplicationInfolist
                                 ->trueColor('info')
                                 ->falseColor('gray'),
 
-                            TextEntry::make('medicalRecord.dietary_restrictions_details')
+                            TextEntry::make('medicalRecord.dietary_restrictions')
                                 ->label('Dietary Details')
                                 ->placeholder('—')
                                 ->color('neutral'),
@@ -436,7 +434,7 @@ class ApplicationInfolist
                                 ->trueColor('purple')
                                 ->falseColor('gray'),
 
-                            TextEntry::make('medicalRecord.special_needs_details')
+                            TextEntry::make('medicalRecord.special_needs_description')
                                 ->label('Special Needs Details')
                                 ->placeholder('—')
                                 ->color('neutral'),
@@ -558,8 +556,10 @@ class ApplicationInfolist
                                     ->formatStateUsing(fn (?string $state): string =>
                                     $state ? 'View / Download' : '—'
                                     )
-                                    ->url(fn (?string $state): ?string =>
-                                    $state ? Storage::disk('public')->url($state) : null
+                                    ->url(fn ($record): ?string =>
+                                    filled($record->file_path)
+                                        ? route('secure-files.documents.download', ['document' => $record->id])
+                                        : null
                                     )
                                     ->openUrlInNewTab()
                                     ->color('primary'),
@@ -681,3 +681,4 @@ class ApplicationInfolist
         ]);
     }
 }
+

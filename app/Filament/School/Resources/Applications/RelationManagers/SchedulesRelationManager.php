@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\School\Resources\Applications\RelationManagers;
 
+use App\Support\ParentNotifier;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -20,6 +21,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
 use Filament\Facades\Filament;
+use Illuminate\Database\Eloquent\Builder;
 
 class SchedulesRelationManager extends RelationManager
 {
@@ -34,6 +36,7 @@ class SchedulesRelationManager extends RelationManager
         return $schema
             ->schema([
                 Section::make('Schedule Details')
+                    ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('type')
                             ->label('Schedule Type')
@@ -41,71 +44,9 @@ class SchedulesRelationManager extends RelationManager
                                 'observation' => 'Observation',
                                 'test' => 'Test/Assessment',
                                 'interview' => 'Parent Interview',
-                                'school_tour' => 'School Tour',
-                                'other' => 'Other',
                             ])
                             ->required()
-                            ->native(false)
-                            ->columnSpan(1),
-
-                        Forms\Components\DateTimePicker::make('scheduled_date')
-                            ->label('Scheduled Date & Time')
-                            ->required()
-                            ->native(false)
-                            ->displayFormat('d/m/Y H:i')
-                            ->minDate(now())
-                            ->columnSpan(1),
-
-                        Forms\Components\TextInput::make('duration_minutes')
-                            ->label('Duration (minutes)')
-                            ->numeric()
-                            ->minValue(15)
-                            ->maxValue(480)
-                            ->default(60)
-                            ->suffix('minutes')
-                            ->columnSpan(1),
-
-                        Forms\Components\Select::make('interviewer_id')
-                            ->label('Interviewer/Assessor')
-                            ->relationship(
-                                name: 'interviewer',
-                                titleAttribute: 'name',
-                                modifyQueryUsing: function ($query) {
-                                    $tenantId = Filament::getTenant()?->id;
-
-                                    if (! $tenantId) {
-                                        return $query->whereRaw('1 = 0');
-                                    }
-
-                                    return $query
-                                        ->where('school_id', $tenantId)
-                                        ->where('is_active', true)
-                                        ->whereHas('roles', function ($q) {
-                                            $q->whereIn('name', ['school_admin', 'admission_admin']);
-                                        });
-                                }
-                            )
-                            ->searchable()
-                            ->preload()
-                            ->columnSpan(1),
-
-                        Forms\Components\Toggle::make('is_online')
-                            ->label('Online Meeting')
-                            ->default(false)
-                            ->inline(false)
-                            ->live()
-                            ->columnSpan(2),
-
-                        Forms\Components\TextInput::make('location')
-                            ->label('Location/Meeting Link')
-                            ->maxLength(255)
-                            ->placeholder(fn (Get $get) => $get('is_online') ? 'Zoom/Google Meet link' : 'Room number or address')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Textarea::make('notes')
-                            ->label('Notes/Instructions')
-                            ->rows(2)
-                            ->columnSpanFull(),
+                            ->native(false),
 
                         Forms\Components\Select::make('status')
                             ->label('Status')
@@ -120,40 +61,109 @@ class SchedulesRelationManager extends RelationManager
                             ->default('scheduled')
                             ->required()
                             ->native(false)
-                            ->live()
-                            ->columnSpan(1),
-                    ])
-                    ->columns(2),
+                            ->live(),
+
+                        Forms\Components\DatePicker::make('scheduled_date')
+                            ->label('Scheduled Date')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->minDate(today()),
+
+                        Forms\Components\TimePicker::make('scheduled_time')
+                            ->label('Scheduled Time')
+                            ->required()
+                            ->seconds(false)
+                            ->native(false)
+                            ->displayFormat('H:i'),
+
+                        Forms\Components\TextInput::make('duration_minutes')
+                            ->label('Duration (minutes)')
+                            ->numeric()
+                            ->minValue(15)
+                            ->maxValue(480)
+                            ->default(60)
+                            ->suffix('minutes'),
+
+                        Forms\Components\Select::make('interviewer_id')
+                            ->label('Interviewer/Assessor')
+                            ->relationship(
+                                name: 'interviewer',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function (Builder $query): Builder {
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (! $tenantId) {
+                                        return $query->whereRaw('1 = 0');
+                                    }
+
+                                    return $query
+                                        ->where('school_id', $tenantId)
+                                        ->where('is_active', true)
+                                        ->whereHas('roles', function ($q): void {
+                                            $q->whereIn('name', ['school_admin', 'admission_admin']);
+                                        });
+                                }
+                            )
+                            ->searchable()
+                            ->preload(),
+
+                        Forms\Components\Toggle::make('is_online')
+                            ->label('Online Meeting')
+                            ->default(false)
+                            ->inline(false)
+                            ->live(),
+
+                        Forms\Components\TextInput::make('location')
+                            ->label('Location')
+                            ->maxLength(255)
+                            ->placeholder(fn (Get $get): string => $get('is_online') ? 'Online meeting platform' : 'Room or location')
+                            ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('online_meeting_link')
+                            ->label('Meeting Link')
+                            ->maxLength(255)
+                            ->url()
+                            ->visible(fn (Get $get): bool => (bool) $get('is_online'))
+                            ->columnSpanFull(),
+
+                        Forms\Components\Textarea::make('notes')
+                            ->label('Notes/Instructions')
+                            ->rows(2)
+                            ->columnSpanFull(),
+                    ]),
 
                 Section::make('Assessment Results')
+                    ->columns(2)
+                    ->collapsible()
+                    ->visible(fn (Get $get): bool => $get('status') === 'completed')
                     ->schema([
                         Forms\Components\TextInput::make('score')
                             ->label('Score')
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
-                            ->suffix('/ 100')
-                            ->columnSpan(1),
+                            ->suffix('/ 100'),
+
+                        Forms\Components\Select::make('recommendation')
+                            ->label('Recommendation')
+                            ->options([
+                                'recommended' => 'Recommended',
+                                'not_recommended' => 'Not Recommended',
+                                'pending' => 'Pending',
+                            ])
+                            ->native(false),
 
                         Forms\Components\DateTimePicker::make('completed_at')
                             ->label('Completed At')
                             ->native(false)
-                            ->displayFormat('d/m/Y H:i')
-                            ->columnSpan(1),
+                            ->displayFormat('d/m/Y H:i'),
 
                         Forms\Components\Textarea::make('result')
                             ->label('Assessment Result/Summary')
                             ->rows(3)
                             ->columnSpanFull(),
-
-                        Forms\Components\Textarea::make('feedback')
-                            ->label('Detailed Feedback')
-                            ->rows(4)
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2)
-                    ->visible(fn (Get $get) => $get('status') === 'completed')
-                    ->collapsible(),
+                    ]),
             ]);
     }
 
@@ -169,25 +179,25 @@ class SchedulesRelationManager extends RelationManager
                     ->color(fn (string $state): string => match ($state) {
                         'observation' => 'info',
                         'test' => 'warning',
-                        'interview' => 'purple',
-                        'school_tour' => 'success',
-                        'other' => 'gray',
+                        'interview' => 'primary',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => (string)str($state)->replace('_', ' ')->title()),
+                    ->formatStateUsing(fn (string $state): string => (string) str($state)->replace('_', ' ')->title()),
 
                 Tables\Columns\TextColumn::make('scheduled_date')
                     ->label('Date & Time')
-                    ->dateTime('d M Y H:i')
+                    ->date('d M Y')
+                    ->description(fn ($record): string => substr((string) $record->scheduled_time, 0, 5))
                     ->sortable()
                     ->weight(FontWeight::Bold)
-                    ->color(function ($record) {
+                    ->color(function ($record): string {
                         if ($record->status === 'completed') {
                             return 'success';
                         }
-                        if ($record->scheduled_date < now() && $record->status === 'scheduled') {
+                        if ($record->scheduled_date->isPast() && $record->status === 'scheduled') {
                             return 'danger';
                         }
+
                         return 'primary';
                     }),
 
@@ -221,26 +231,20 @@ class SchedulesRelationManager extends RelationManager
                         'rescheduled' => 'gray',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => (string)str($state)->replace('_', ' ')->title()),
+                    ->formatStateUsing(fn (string $state): string => (string) str($state)->replace('_', ' ')->title()),
 
                 Tables\Columns\TextColumn::make('score')
                     ->label('Score')
                     ->badge()
                     ->suffix(' / 100')
-                    ->color(fn ($state) => match (true) {
+                    ->color(fn ($state): string => match (true) {
+                        $state === null => 'gray',
                         $state >= 80 => 'success',
                         $state >= 60 => 'warning',
-                        $state < 60 => 'danger',
-                        default => 'gray',
+                        default => 'danger',
                     })
                     ->placeholder('N/A')
                     ->toggleable(),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime('d M Y')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
@@ -248,8 +252,6 @@ class SchedulesRelationManager extends RelationManager
                         'observation' => 'Observation',
                         'test' => 'Test/Assessment',
                         'interview' => 'Interview',
-                        'school_tour' => 'School Tour',
-                        'other' => 'Other',
                     ])
                     ->multiple(),
 
@@ -269,7 +271,7 @@ class SchedulesRelationManager extends RelationManager
                     ->relationship(
                         name: 'interviewer',
                         titleAttribute: 'name',
-                        modifyQueryUsing: function ($query) {
+                        modifyQueryUsing: function (Builder $query): Builder {
                             $tenantId = Filament::getTenant()?->id;
 
                             return $tenantId
@@ -280,22 +282,15 @@ class SchedulesRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\TernaryFilter::make('is_online')
-                    ->label('Online Meeting'),
-
                 Tables\Filters\Filter::make('scheduled_date')
                     ->form([
-                        Forms\Components\DatePicker::make('from')
-                            ->label('From Date')
-                            ->native(false),
-                        Forms\Components\DatePicker::make('until')
-                            ->label('Until Date')
-                            ->native(false),
+                        Forms\Components\DatePicker::make('from')->label('From Date')->native(false),
+                        Forms\Components\DatePicker::make('until')->label('Until Date')->native(false),
                     ])
-                    ->query(function ($query, array $data) {
+                    ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from'], fn ($q, $date) => $q->whereDate('scheduled_date', '>=', $date))
-                            ->when($data['until'], fn ($q, $date) => $q->whereDate('scheduled_date', '<=', $date));
+                            ->when($data['from'] ?? null, fn (Builder $q, $date): Builder => $q->whereDate('scheduled_date', '>=', $date))
+                            ->when($data['until'] ?? null, fn (Builder $q, $date): Builder => $q->whereDate('scheduled_date', '<=', $date));
                     }),
             ])
             ->headerActions([
@@ -303,7 +298,11 @@ class SchedulesRelationManager extends RelationManager
                     ->icon('heroicon-o-plus')
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['created_by'] = auth()->id();
+
                         return $data;
+                    })
+                    ->after(function ($record): void {
+                        ParentNotifier::scheduleUpdated($record->refresh(), 'created');
                     }),
             ])
             ->recordActions([
@@ -318,27 +317,33 @@ class SchedulesRelationManager extends RelationManager
                             ->minValue(0)
                             ->maxValue(100)
                             ->suffix('/ 100'),
-
+                        Forms\Components\Select::make('recommendation')
+                            ->label('Recommendation')
+                            ->options([
+                                'recommended' => 'Recommended',
+                                'not_recommended' => 'Not Recommended',
+                                'pending' => 'Pending',
+                            ])
+                            ->default('pending')
+                            ->native(false),
                         Forms\Components\Textarea::make('result')
                             ->label('Assessment Result')
                             ->rows(3),
-
-                        Forms\Components\Textarea::make('feedback')
-                            ->label('Feedback')
-                            ->rows(4),
                     ])
                     ->action(function ($record, array $data): void {
                         $record->update([
                             'status' => 'completed',
                             'completed_at' => now(),
                             'completed_by' => auth()->id(),
-                            'score' => $data['score'],
-                            'result' => $data['result'],
-                            'feedback' => $data['feedback'],
+                            'score' => $data['score'] ?? null,
+                            'recommendation' => $data['recommendation'] ?? 'pending',
+                            'result' => $data['result'] ?? null,
                         ]);
+
+                        ParentNotifier::scheduleUpdated($record->refresh(), 'completed');
                     })
                     ->successNotificationTitle('Schedule completed successfully')
-                    ->visible(fn ($record) => in_array($record->status, ['scheduled', 'confirmed'])),
+                    ->visible(fn ($record): bool => in_array($record->status, ['scheduled', 'confirmed'], true)),
 
                 Action::make('cancel')
                     ->label('Cancel')
@@ -347,9 +352,11 @@ class SchedulesRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->action(function ($record): void {
                         $record->update(['status' => 'cancelled']);
+
+                        ParentNotifier::scheduleUpdated($record->refresh(), 'cancelled');
                     })
                     ->successNotificationTitle('Schedule cancelled')
-                    ->visible(fn ($record) => in_array($record->status, ['scheduled', 'confirmed'])),
+                    ->visible(fn ($record): bool => in_array($record->status, ['scheduled', 'confirmed'], true)),
 
                 ViewAction::make(),
                 EditAction::make(),

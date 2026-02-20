@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\School\Resources\Schedules\Tables;
 
+use App\Support\ParentNotifier;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -206,6 +207,7 @@ class SchedulesTable
                             'completed_at' => now(),
                             'completed_by' => auth()->id(),
                         ]);
+                        ParentNotifier::scheduleUpdated($record->refresh(), 'completed');
 
                         Notification::make()
                             ->title('Session Completed')
@@ -226,6 +228,7 @@ class SchedulesTable
                     ->modalDescription('This will cancel the schedule. The applicant should be notified separately.')
                     ->action(function ($record): void {
                         $record->update(['status' => 'cancelled']);
+                        ParentNotifier::scheduleUpdated($record->refresh(), 'cancelled');
 
                         Notification::make()
                             ->title('Schedule Cancelled')

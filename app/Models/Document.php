@@ -136,7 +136,9 @@ class Document extends Model
     protected function fileUrl(): Attribute
     {
         return Attribute::make(
-            get: fn() => Storage::url($this->file_path)
+            get: fn() => auth()->check()
+                ? route('secure-files.documents.download', ['document' => $this->id])
+                : null
         );
     }
 
@@ -254,8 +256,14 @@ class Document extends Model
         parent::boot();
 
         static::deleting(function (Document $document) {
-            if ($document->file_path && Storage::exists($document->file_path)) {
-                Storage::delete($document->file_path);
+            if (! $document->file_path) {
+                return;
+            }
+
+            if (Storage::disk('local')->exists($document->file_path)) {
+                Storage::disk('local')->delete($document->file_path);
+            } elseif (Storage::disk('public')->exists($document->file_path)) {
+                Storage::disk('public')->delete($document->file_path);
             }
         });
     }

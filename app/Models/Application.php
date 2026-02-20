@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasOne};
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use RuntimeException;
 
 /**
  * Application Model
@@ -125,6 +128,37 @@ class Application extends Model
         'rejected' => [],
         'enrolled' => [],
         'withdrawn' => [],
+    ];
+
+    public const IMMUTABLE_AFTER_SUBMIT_FIELDS = [
+        'school_id',
+        'academic_year_id',
+        'admission_period_id',
+        'level_id',
+        'student_first_name',
+        'student_middle_name',
+        'student_last_name',
+        'student_preferred_name',
+        'gender',
+        'birth_place',
+        'birth_date',
+        'nationality',
+        'passport_number',
+        'email',
+        'phone',
+        'current_address',
+        'current_city',
+        'current_country',
+        'current_postal_code',
+        'previous_school_name',
+        'previous_school_country',
+        'current_grade_level',
+        'previous_school_start_date',
+        'previous_school_end_date',
+        'special_needs',
+        'learning_support_required',
+        'languages_spoken',
+        'interests_hobbies',
     ];
 
     protected $table = 'applications';
@@ -458,6 +492,81 @@ class Application extends Model
         return in_array($newStatus, self::STATUS_TRANSITIONS[$this->status] ?? [], true);
     }
 
+    public function transitionStatus(string $toStatus, ?string $notes = null, ?int $actorId = null): bool
+    {
+        $changed = false;
+        $fromStatus = null;
+
+        DB::transaction(function () use ($toStatus, $notes, $actorId, &$changed, &$fromStatus): void {
+            /** @var self $locked */
+            $locked = self::query()->whereKey($this->getKey())->lockForUpdate()->first();
+
+            if (! $locked) {
+                throw new ModelNotFoundException('Application not found.');
+            }
+
+            $fromStatus = (string) $locked->status;
+
+            if ($fromStatus === $toStatus) {
+                $changed = false;
+                return;
+            }
+
+            if (! $locked->canTransitionTo($toStatus)) {
+                throw new RuntimeException(sprintf(
+                    'Invalid application status transition: %s -> %s',
+                    self::statusLabelFor($fromStatus),
+                    self::statusLabelFor($toStatus)
+                ));
+            }
+
+            $payload = [
+                'status' => $toStatus,
+            ];
+
+            if ($notes !== null) {
+                $payload['status_notes'] = $notes;
+            }
+
+            if ($toStatus === 'submitted' && $locked->submitted_at === null) {
+                $payload['submitted_at'] = now();
+            }
+
+            $locked->fill($payload);
+            $locked->save();
+
+            $this->forceFill($locked->fresh()->getAttributes())->syncOriginal();
+
+            $changed = true;
+        }, 3);
+
+        if ($changed) {
+            ActivityLog::logActivity(
+                description: sprintf(
+                    'Application status changed: %s -> %s',
+                    self::statusLabelFor((string) $fromStatus),
+                    self::statusLabelFor($toStatus)
+                ),
+                subject: $this,
+                logName: 'application',
+                event: 'status_changed',
+                properties: [
+                    'from_status' => $fromStatus,
+                    'to_status' => $toStatus,
+                    'notes' => $notes,
+                ],
+                userId: $actorId
+            );
+        }
+
+        return $changed;
+    }
+
+    public function submit(?int $actorId = null): bool
+    {
+        return $this->transitionStatus('submitted', null, $actorId);
+    }
+
     public function availableStatusOptions(): array
     {
         $allowed = self::STATUS_TRANSITIONS[$this->status] ?? [];
@@ -527,11 +636,62 @@ class Application extends Model
     {
         parent::boot();
 
+        static::updating(function (Application $application): void {
+            if ($application->getOriginal('status') === 'draft') {
+                return;
+            }
+
+            $changedImmutableFields = array_filter(
+                self::IMMUTABLE_AFTER_SUBMIT_FIELDS,
+                fn (string $field): bool => $application->isDirty($field)
+            );
+
+            if ($changedImmutableFields !== []) {
+                throw new RuntimeException(sprintf(
+                    'Cannot update immutable application fields after submit: %s',
+                    implode(', ', $changedImmutableFields)
+                ));
+            }
+        });
+
+        static::saving(function (Application $application) {
+            $application->syncActiveChildUniquenessGuard();
+        });
+
         static::creating(function (Application $application) {
             if (empty($application->application_number)) {
                 $application->application_number = $application->generateApplicationNumber();
             }
         });
+    }
+
+    private function syncActiveChildUniquenessGuard(): void
+    {
+        $this->student_first_name_key = self::normalizeName($this->student_first_name);
+        $this->student_last_name_key = self::normalizeName($this->student_last_name);
+
+        $hasScope = filled($this->school_id)
+            && filled($this->admission_period_id)
+            && filled($this->birth_date)
+            && filled($this->student_first_name_key)
+            && filled($this->student_last_name_key);
+
+        $this->duplicate_guard = ($hasScope && in_array($this->status, self::ACTIVE_STATUSES, true)) ? 1 : null;
+    }
+
+    private static function normalizeName(?string $name): ?string
+    {
+        if ($name === null) {
+            return null;
+        }
+
+        $normalized = preg_replace('/\s+/', ' ', trim((string) $name));
+
+        if ($normalized === '' || $normalized === null) {
+            return null;
+        }
+
+        return mb_strtolower($normalized);
     }
 
     public function generateApplicationNumber(): string

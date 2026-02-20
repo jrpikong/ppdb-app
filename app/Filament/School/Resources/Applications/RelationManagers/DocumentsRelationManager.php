@@ -67,7 +67,7 @@ class DocumentsRelationManager extends RelationManager
                         FileUpload::make('file_path')
                             ->label('Upload Document')
                             ->required()
-                            ->disk('public')
+                            ->disk('local')
                             ->directory('documents')
                             ->visibility('private')
                             ->maxSize(5120) // 5MB
@@ -207,8 +207,13 @@ class DocumentsRelationManager extends RelationManager
                         if (isset($data['file_path'])) {
                             $filePath = $data['file_path'];
                             $data['file_name'] = basename($filePath);
-                            $data['file_size'] = Storage::disk('public')->size($filePath);
-                            $data['mime_type'] = Storage::disk('public')->mimeType($filePath);
+                            if (Storage::disk('local')->exists($filePath)) {
+                                $data['file_size'] = Storage::disk('local')->size($filePath);
+                                $data['mime_type'] = Storage::disk('local')->mimeType($filePath);
+                            } elseif (Storage::disk('public')->exists($filePath)) {
+                                $data['file_size'] = Storage::disk('public')->size($filePath);
+                                $data['mime_type'] = Storage::disk('public')->mimeType($filePath);
+                            }
                         }
                         return $data;
                     }),
@@ -218,7 +223,7 @@ class DocumentsRelationManager extends RelationManager
                     ->label('Download')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
-                    ->url(fn ($record) => Storage::disk('public')->url($record->file_path))
+                    ->url(fn ($record) => route('secure-files.documents.download', ['document' => $record->id]))
                     ->openUrlInNewTab(),
 
                 Action::make('verify')

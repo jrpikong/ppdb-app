@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Filament\School\Resources\Schedules\Pages;
 
 use App\Filament\School\Resources\Schedules\ScheduleResource;
+use App\Support\ParentNotifier;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -52,6 +53,7 @@ class ViewSchedule extends ViewRecord
                         'completed_at'   => now(),
                         'completed_by'   => auth()->id(),
                     ]);
+                    ParentNotifier::scheduleUpdated($this->getRecord()->refresh(), 'completed');
                     Notification::make()->title('Session Completed')->success()->send();
                     $this->refreshFormData(['status', 'result', 'score', 'recommendation']);
                 })
@@ -64,6 +66,7 @@ class ViewSchedule extends ViewRecord
                 ->requiresConfirmation()
                 ->action(function (): void {
                     $this->getRecord()->update(['status' => 'cancelled']);
+                    ParentNotifier::scheduleUpdated($this->getRecord()->refresh(), 'cancelled');
                     Notification::make()->title('Schedule Cancelled')->warning()->send();
                     $this->refreshFormData(['status']);
                 })

@@ -52,7 +52,7 @@ class ViewPayment extends ViewRecord
                     FileUpload::make('proof_file')
                         ->label('Payment Proof')
                         ->required()
-                        ->disk('public')
+                        ->disk('local')
                         ->directory('payments')
                         ->maxSize(10240)
                         ->acceptedFileTypes([

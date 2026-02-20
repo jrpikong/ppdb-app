@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Filament\School\Resources\Payments\Pages;
 
 use App\Filament\School\Resources\Payments\PaymentResource;
+use App\Support\ParentNotifier;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -24,7 +25,7 @@ class ViewPayment extends ViewRecord
                 ->color('info')
                 ->url(fn (): ?string =>
                 $this->getRecord()->proof_file
-                    ? \Illuminate\Support\Facades\Storage::url($this->getRecord()->proof_file)
+                    ? route('secure-files.payments.proof', ['payment' => $this->getRecord()->id])
                     : null
                 )
                 ->openUrlInNewTab()
@@ -39,6 +40,7 @@ class ViewPayment extends ViewRecord
                 ])
                 ->action(function (array $data): void {
                     $this->getRecord()->verify(auth()->id(), $data['notes'] ?? null);
+                    ParentNotifier::paymentStatusChanged($this->getRecord()->refresh(), 'verified', $data['notes'] ?? null);
                     Notification::make()->title('Payment Verified')->success()->send();
                     $this->refreshFormData(['status', 'verified_by', 'verified_at']);
                 })
@@ -54,6 +56,7 @@ class ViewPayment extends ViewRecord
                 ])
                 ->action(function (array $data): void {
                     $this->getRecord()->reject(auth()->id(), $data['rejection_reason']);
+                    ParentNotifier::paymentStatusChanged($this->getRecord()->refresh(), 'rejected', $data['rejection_reason']);
                     Notification::make()->title('Payment Rejected')->warning()->send();
                     $this->refreshFormData(['status', 'rejection_reason']);
                 })
@@ -79,6 +82,7 @@ class ViewPayment extends ViewRecord
                         $data['refund_reason'],
                     );
                     $this->getRecord()->update(['refund_date' => $data['refund_date']]);
+                    ParentNotifier::paymentStatusChanged($this->getRecord()->refresh(), 'refunded', $data['refund_reason']);
                     Notification::make()->title('Refund Processed')->info()->send();
                     $this->refreshFormData(['status', 'refund_amount', 'refund_date']);
                 })

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * Payment Model
@@ -39,6 +42,14 @@ use Illuminate\Support\Facades\Storage;
 class Payment extends Model
 {
     use SoftDeletes;
+
+    public const STATUS_TRANSITIONS = [
+        'pending' => ['submitted'],
+        'submitted' => ['verified', 'rejected'],
+        'verified' => ['refunded'],
+        'rejected' => ['submitted'],
+        'refunded' => [],
+    ];
 
     protected $table = 'payments';
 
@@ -131,7 +142,9 @@ class Payment extends Model
     protected function proofUrl(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->proof_file ? Storage::url($this->proof_file) : null
+            get: fn() => $this->proof_file && auth()->check()
+                ? route('secure-files.payments.proof', ['payment' => $this->id])
+                : null
         );
     }
 
@@ -195,34 +208,113 @@ class Payment extends Model
         return $this->isSubmitted() && $this->proof_file;
     }
 
+    public function canTransitionTo(string $newStatus): bool
+    {
+        if ($newStatus === $this->status) {
+            return true;
+        }
+
+        return in_array($newStatus, self::STATUS_TRANSITIONS[$this->status] ?? [], true);
+    }
+
+    public function transitionStatus(string $toStatus, array $attributes = [], ?int $actorId = null): bool
+    {
+        $changed = false;
+        $fromStatus = null;
+
+        DB::transaction(function () use ($toStatus, $attributes, &$changed, &$fromStatus): void {
+            /** @var self $locked */
+            $locked = self::query()->whereKey($this->getKey())->lockForUpdate()->first();
+
+            if (! $locked) {
+                throw new ModelNotFoundException('Payment not found.');
+            }
+
+            $fromStatus = (string) $locked->status;
+
+            if ($fromStatus === $toStatus) {
+                $changed = false;
+                return;
+            }
+
+            if (! $locked->canTransitionTo($toStatus)) {
+                throw new RuntimeException(sprintf(
+                    'Invalid payment status transition: %s -> %s',
+                    $fromStatus,
+                    $toStatus
+                ));
+            }
+
+            if ($toStatus === 'submitted' && empty($attributes['proof_file']) && empty($locked->proof_file)) {
+                throw new RuntimeException('Payment proof is required before submitting payment.');
+            }
+
+            $payload = array_merge($attributes, ['status' => $toStatus]);
+
+            if ($toStatus === 'submitted') {
+                $payload['rejection_reason'] = null;
+                $payload['verified_at'] = null;
+                $payload['verified_by'] = null;
+            }
+
+            if (in_array($toStatus, ['verified', 'rejected'], true)) {
+                $payload['verified_at'] = now();
+            }
+
+            $locked->fill($payload);
+            $locked->save();
+
+            $this->forceFill($locked->fresh()->getAttributes())->syncOriginal();
+            $changed = true;
+        }, 3);
+
+        if ($changed) {
+            ActivityLog::logActivity(
+                description: sprintf('Payment status changed: %s -> %s', (string) $fromStatus, $toStatus),
+                subject: $this,
+                logName: 'payment',
+                event: 'status_changed',
+                properties: [
+                    'from_status' => $fromStatus,
+                    'to_status' => $toStatus,
+                    'attributes' => $attributes,
+                ],
+                userId: $actorId
+            );
+        }
+
+        return $changed;
+    }
+
+    public function submitProof(array $attributes, ?int $actorId = null): bool
+    {
+        return $this->transitionStatus('submitted', $attributes, $actorId);
+    }
+
     public function verify(int $userId, ?string $notes = null): bool
     {
-        $this->status = 'verified';
-        $this->verified_by = $userId;
-        $this->verified_at = now();
-        $this->notes = $notes;
-
-        return $this->save();
+        return $this->transitionStatus('verified', [
+            'notes' => $notes ?? $this->notes,
+            'verified_by' => $userId,
+            'rejection_reason' => null,
+        ], $userId);
     }
 
     public function reject(int $userId, string $reason): bool
     {
-        $this->status = 'rejected';
-        $this->verified_by = $userId;
-        $this->verified_at = now();
-        $this->rejection_reason = $reason;
-
-        return $this->save();
+        return $this->transitionStatus('rejected', [
+            'verified_by' => $userId,
+            'rejection_reason' => $reason,
+        ], $userId);
     }
 
     public function refund(float $amount, string $reason): bool
     {
-        $this->status = 'refunded';
-        $this->refund_amount = $amount;
-        $this->refund_date = now();
-        $this->refund_reason = $reason;
-
-        return $this->save();
+        return $this->transitionStatus('refunded', [
+            'refund_amount' => $amount,
+            'refund_date' => now(),
+            'refund_reason' => $reason,
+        ], auth()->id());
     }
 
     // ==================== BOOT METHOD ====================
@@ -238,8 +330,14 @@ class Payment extends Model
         });
 
         static::deleting(function (Payment $payment) {
-            if ($payment->proof_file && Storage::exists($payment->proof_file)) {
-                Storage::delete($payment->proof_file);
+            if (! $payment->proof_file) {
+                return;
+            }
+
+            if (Storage::disk('local')->exists($payment->proof_file)) {
+                Storage::disk('local')->delete($payment->proof_file);
+            } elseif (Storage::disk('public')->exists($payment->proof_file)) {
+                Storage::disk('public')->delete($payment->proof_file);
             }
         });
     }

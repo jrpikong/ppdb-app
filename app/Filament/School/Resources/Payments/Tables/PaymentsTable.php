@@ -145,7 +145,7 @@ class PaymentsTable
                     ->color('info')
                     ->url(fn ($record): ?string =>
                     $record->proof_file
-                        ? \Illuminate\Support\Facades\Storage::url($record->proof_file)
+                        ? route('secure-files.payments.proof', ['payment' => $record->id])
                         : null
                     )
                     ->openUrlInNewTab()

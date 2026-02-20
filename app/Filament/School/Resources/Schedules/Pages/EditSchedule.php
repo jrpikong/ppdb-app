@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Filament\School\Resources\Schedules\Pages;
 
 use App\Filament\School\Resources\Schedules\ScheduleResource;
+use App\Support\ParentNotifier;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -23,5 +24,10 @@ class EditSchedule extends EditRecord
     protected function getSavedNotificationTitle(): ?string
     {
         return 'Schedule updated';
+    }
+
+    protected function afterSave(): void
+    {
+        ParentNotifier::scheduleUpdated($this->getRecord(), 'updated');
     }
 }

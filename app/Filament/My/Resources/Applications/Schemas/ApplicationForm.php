@@ -57,6 +57,7 @@ class ApplicationForm
                 ->description('Choose the school, admission period, and level. You can complete the rest of the form after saving.')
                 ->visibleOn('create')
                 ->columns(2)
+                ->columnSpanFull()
                 ->schema([
                     Select::make('school_id')
                         ->label('School')
@@ -322,16 +323,16 @@ class ApplicationForm
                             Textarea::make('medicalRecord.food_allergies_details')->label('Food Allergy Details')->rows(2)
                                 ->visible(fn (Get $get): bool => (bool) $get('medicalRecord.has_food_allergies'))->columnSpanFull(),
                             Toggle::make('medicalRecord.has_medical_conditions')->label('Medical Conditions')->live(),
-                            Textarea::make('medicalRecord.medical_conditions_details')->label('Medical Condition Details')->rows(2)
+                            Textarea::make('medicalRecord.medical_conditions')->label('Medical Condition Details')->rows(2)
                                 ->visible(fn (Get $get): bool => (bool) $get('medicalRecord.has_medical_conditions'))->columnSpanFull(),
                             Toggle::make('medicalRecord.requires_daily_medication')->label('Requires Daily Medication')->live(),
-                            Textarea::make('medicalRecord.medications_details')->label('Medication Details')->rows(2)
+                            Textarea::make('medicalRecord.daily_medications')->label('Medication Details')->rows(2)
                                 ->visible(fn (Get $get): bool => (bool) $get('medicalRecord.requires_daily_medication'))->columnSpanFull(),
                             Toggle::make('medicalRecord.has_dietary_restrictions')->label('Dietary Restrictions')->live(),
-                            Textarea::make('medicalRecord.dietary_restrictions_details')->label('Dietary Details')->rows(2)
+                            Textarea::make('medicalRecord.dietary_restrictions')->label('Dietary Details')->rows(2)
                                 ->visible(fn (Get $get): bool => (bool) $get('medicalRecord.has_dietary_restrictions'))->columnSpanFull(),
                             Toggle::make('medicalRecord.has_special_needs')->label('Special Educational Needs')->live(),
-                            Textarea::make('medicalRecord.special_needs_details')->label('Special Needs Details')->rows(2)
+                            Textarea::make('medicalRecord.special_needs_description')->label('Special Needs Details')->rows(2)
                                 ->visible(fn (Get $get): bool => (bool) $get('medicalRecord.has_special_needs'))->columnSpanFull(),
                         ]),
 
@@ -371,10 +372,10 @@ class ApplicationForm
                                 ]),
                                 FileUpload::make('file_path')
                                     ->label('Upload File')->required()
-                                    ->disk('public')->directory('documents')->maxSize(10240)
+                                    ->disk('local')->directory('documents')->maxSize(10240)
                                     ->acceptedFileTypes(self::documentMimeTypes())
                                     ->helperText('Accepted: PDF, JPG / JPEG, PNG, WebP · Max 10 MB')
-                                    ->downloadable()->openable()->columnSpanFull(),
+                                    ->columnSpanFull(),
                                 Textarea::make('description')->label('Notes (optional)')->rows(1)->columnSpanFull(),
                                 Hidden::make('status')->default('pending'),
                                 Hidden::make('file_type'),
@@ -386,19 +387,20 @@ class ApplicationForm
                                 $data['file_size'] = 0;
 
                                 if (! empty($data['file_path'])) {
-                                    // File sudah dipindah ke disk public
-                                    if (Storage::disk('public')->exists($data['file_path'])) {
+                                    // Prefer private disk (local), fallback for legacy public files.
+                                    if (Storage::disk('local')->exists($data['file_path'])) {
                                         try {
-                                            $data['file_type'] = Storage::disk('public')->mimeType($data['file_path']) ?: 'application/octet-stream';
-                                            $data['file_size'] = Storage::disk('public')->size($data['file_path']) ?: 0;
+                                            $data['file_type'] = Storage::disk('local')->mimeType($data['file_path']) ?: 'application/octet-stream';
+                                            $data['file_size'] = Storage::disk('local')->size($data['file_path']) ?: 0;
                                         } catch (\Throwable) {
                                             // biarkan default values di atas
                                         }
                                     }
-                                    // File masih di livewire-tmp (disk local) — ambil size dari sana
-                                    elseif (Storage::disk('local')->exists($data['file_path'])) {
+                                    // Legacy public disk fallback
+                                    elseif (Storage::disk('public')->exists($data['file_path'])) {
                                         try {
-                                            $data['file_size'] = Storage::disk('local')->size($data['file_path']) ?: 0;
+                                            $data['file_type'] = Storage::disk('public')->mimeType($data['file_path']) ?: 'application/octet-stream';
+                                            $data['file_size'] = Storage::disk('public')->size($data['file_path']) ?: 0;
                                         } catch (\Throwable) {
                                             // biarkan default
                                         }
@@ -409,16 +411,17 @@ class ApplicationForm
                             })
                             ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
                                 if (! empty($data['file_path'])) {
-                                    if (Storage::disk('public')->exists($data['file_path'])) {
+                                    if (Storage::disk('local')->exists($data['file_path'])) {
                                         try {
-                                            $data['file_type'] = Storage::disk('public')->mimeType($data['file_path']) ?: ($data['file_type'] ?? 'application/octet-stream');
-                                            $data['file_size'] = Storage::disk('public')->size($data['file_path']) ?: ($data['file_size'] ?? 0);
+                                            $data['file_type'] = Storage::disk('local')->mimeType($data['file_path']) ?: ($data['file_type'] ?? 'application/octet-stream');
+                                            $data['file_size'] = Storage::disk('local')->size($data['file_path']) ?: ($data['file_size'] ?? 0);
                                         } catch (\Throwable) {
                                             // pertahankan nilai lama
                                         }
-                                    } elseif (Storage::disk('local')->exists($data['file_path'])) {
+                                    } elseif (Storage::disk('public')->exists($data['file_path'])) {
                                         try {
-                                            $data['file_size'] = Storage::disk('local')->size($data['file_path']) ?: ($data['file_size'] ?? 0);
+                                            $data['file_type'] = Storage::disk('public')->mimeType($data['file_path']) ?: ($data['file_type'] ?? 'application/octet-stream');
+                                            $data['file_size'] = Storage::disk('public')->size($data['file_path']) ?: ($data['file_size'] ?? 0);
                                         } catch (\Throwable) {
                                             // pertahankan nilai lama
                                         }

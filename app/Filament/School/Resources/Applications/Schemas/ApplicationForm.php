@@ -11,7 +11,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
@@ -106,14 +105,6 @@ class ApplicationForm
                             )
                             ->searchable()
                             ->preload()
-                            ->columnSpan(1),
-
-                        TextInput::make('priority_score')
-                            ->label('Priority Score')
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->suffix('/ 100')
                             ->columnSpan(1),
 
                         Textarea::make('status_notes')
@@ -304,26 +295,6 @@ class ApplicationForm
                     ->columns(3)
                     ->collapsible(),
 
-                Section::make('Internal Notes')
-                    ->schema([
-                        Textarea::make('interview_notes')
-                            ->label('Interview Notes')
-                            ->rows(3)
-                            ->columnSpanFull(),
-
-                        Textarea::make('rejection_reason')
-                            ->label('Rejection Reason')
-                            ->rows(3)
-                            ->visible(fn (Get $get) => $get('status') === 'rejected')
-                            ->columnSpanFull(),
-
-                        Textarea::make('internal_notes')
-                            ->label('Internal Notes')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
             ]);
     }
 }

@@ -39,13 +39,13 @@ class MyApplicationStatsWidget extends BaseWidget
             Stat::make('Total Applications', $total)
                 ->color('primary'),
             Stat::make('Draft', $draft)
-                ->color('gray'),
+                ->color('info'),
             Stat::make('In Progress', $active)
                 ->color('info'),
             Stat::make('Accepted', $accepted)
-                ->color('success'),
+                ->color('primary'),
             Stat::make('Enrolled', $enrolled)
-                ->color('success'),
+                ->color('primary'),
         ];
     }
 }

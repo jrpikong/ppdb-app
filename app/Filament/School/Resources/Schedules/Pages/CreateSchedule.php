@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Filament\School\Resources\Schedules\Pages;
 
 use App\Filament\School\Resources\Schedules\ScheduleResource;
+use App\Support\ParentNotifier;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateSchedule extends CreateRecord
@@ -23,5 +24,10 @@ class CreateSchedule extends CreateRecord
     protected function getCreatedNotificationTitle(): ?string
     {
         return 'Schedule created successfully';
+    }
+
+    protected function afterCreate(): void
+    {
+        ParentNotifier::scheduleUpdated($this->getRecord(), 'created');
     }
 }
