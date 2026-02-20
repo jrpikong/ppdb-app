@@ -73,13 +73,14 @@ class DatabaseSeeder extends Seeder
             ['Roles',              '5 global + 15 tenant', '✓'],
             ['Permissions',        '90+',   '✓'],
             ['Schools',            '3',     '✓'],
-            ['Academic Years',     '9',     '✓'],
+            ['Academic Years',     '3',     '✓'],
             ['Levels',             '36',    '✓'],
             ['Admission Periods',  '3',     '✓'],
             ['Payment Types',      '18',    '✓'],
-            ['Users',              '23',    '✓'],
+            ['Users',              '38',    '✓'],
+            ['Applications',       '45',    '✓'],
             ['─────────────────',  '─────', '────────'],
-            ['TOTAL RECORDS',      '~183+', '✓'],
+            ['TOTAL RECORDS',      '~240+', '✓'],
         ];
 
         foreach ($summary as $row) {
@@ -112,100 +113,64 @@ class DatabaseSeeder extends Seeder
         $this->command->newLine();
 
         // ── VIS BINTARO ─────────────────────────────────────────────────────
-        $this->command->info('┌─ 🏫 VIS BINTARO (VIS-BIN)');
-        $this->command->info('│  Panel  : /school/s/VIS-BIN');
-        $this->command->info('│');
-        $this->command->info('│  Email  : sarah.johnson@vis-bin.sch.id');
-        $this->command->info('│  Role   : super_admin');
-        $this->command->info('│  Akses  : Full access dalam tenant VIS-BIN');
-        $this->command->info('│');
-        $this->command->info('│  Email  : michael.chen@vis-bin.sch.id');
-        $this->command->info('│  Role   : school_admin');
-        $this->command->info('│  Akses  : Manajemen sekolah, user, laporan');
-        $this->command->info('│');
-        $this->command->info('│  Email  : lisa.wong@vis-bin.sch.id');
-        $this->command->info('│  Role   : admission_admin');
-        $this->command->info('│  Akses  : Aplikasi, dokumen, jadwal wawancara');
-        $this->command->info('│');
-        $this->command->info('│  Email  : robert.bintaro@vis-bin.sch.id');
-        $this->command->info('│  Role   : finance_admin');
-        $this->command->info('│  Akses  : Pembayaran, verifikasi, laporan keuangan');
+        $this->command->info('┌─ 🏫 VIS BINTARO (VIS-BIN)  —  /school/s/VIS-BIN');
+        $this->command->info('│  sarah.johnson@vis-bin.sch.id       → super_admin    (Principal / Full Access)');
+        $this->command->info('│  michael.chen@vis-bin.sch.id        → school_admin   (Academic Director)');
+        $this->command->info('│  lisa.wong@vis-bin.sch.id           → admission_admin (Head of Admissions)');
+        $this->command->info('│  robert.bintaro@vis-bin.sch.id      → finance_admin  (Finance Manager)');
         $this->command->info('└────────────────────────────────────────────────────');
         $this->command->newLine();
 
         // ── VIS KELAPA GADING ───────────────────────────────────────────────
-        $this->command->info('┌─ 🏫 VIS KELAPA GADING (VIS-KG)');
-        $this->command->info('│  Panel  : /school/s/VIS-KG');
-        $this->command->info('│');
-        $this->command->info('│  Email  : david.kumar@vis-kg.sch.id');
-        $this->command->info('│  Role   : super_admin');
-        $this->command->info('│  Akses  : Full access dalam tenant VIS-KG');
-        $this->command->info('│');
-        $this->command->info('│  Email  : emma.wilson@vis-kg.sch.id');
-        $this->command->info('│  Role   : school_admin');
-        $this->command->info('│  Akses  : Manajemen sekolah, user, laporan');
-        $this->command->info('│');
-        $this->command->info('│  Email  : robert.lee@vis-kg.sch.id');
-        $this->command->info('│  Role   : admission_admin');
-        $this->command->info('│  Akses  : Aplikasi, dokumen, jadwal wawancara');
-        $this->command->info('│');
-        $this->command->info('│  Email  : cynthia.park@vis-kg.sch.id');
-        $this->command->info('│  Role   : finance_admin');
-        $this->command->info('│  Akses  : Pembayaran, verifikasi, laporan keuangan');
+        $this->command->info('┌─ 🏫 VIS KELAPA GADING (VIS-KG)  —  /school/s/VIS-KG');
+        $this->command->info('│  david.kumar@vis-kg.sch.id          → super_admin    (Principal / Full Access)');
+        $this->command->info('│  emma.wilson@vis-kg.sch.id          → school_admin   (Academic Director)');
+        $this->command->info('│  robert.lee@vis-kg.sch.id           → admission_admin (Head of Admissions)');
+        $this->command->info('│  cynthia.park@vis-kg.sch.id         → finance_admin  (Finance Manager)');
         $this->command->info('└────────────────────────────────────────────────────');
         $this->command->newLine();
 
         // ── VIS BALI ────────────────────────────────────────────────────────
-        $this->command->info('┌─ 🏫 VIS BALI (VIS-BALI)');
-        $this->command->info('│  Panel  : /school/s/VIS-BALI');
-        $this->command->info('│');
-        $this->command->info('│  Email  : amanda.martinez@vis-bali.sch.id');
-        $this->command->info('│  Role   : super_admin');
-        $this->command->info('│  Akses  : Full access dalam tenant VIS-BALI');
-        $this->command->info('│');
-        $this->command->info('│  Email  : james.taylor@vis-bali.sch.id');
-        $this->command->info('│  Role   : school_admin');
-        $this->command->info('│  Akses  : Manajemen sekolah, user, laporan');
-        $this->command->info('│');
-        $this->command->info('│  Email  : michelle.tan@vis-bali.sch.id');
-        $this->command->info('│  Role   : admission_admin');
-        $this->command->info('│  Akses  : Aplikasi, dokumen, jadwal wawancara');
-        $this->command->info('│');
-        $this->command->info('│  Email  : kevin.sanjaya@vis-bali.sch.id');
-        $this->command->info('│  Role   : finance_admin');
-        $this->command->info('│  Akses  : Pembayaran, verifikasi, laporan keuangan');
+        $this->command->info('┌─ 🏫 VIS BALI (VIS-BALI)  —  /school/s/VIS-BALI');
+        $this->command->info('│  amanda.martinez@vis-bali.sch.id    → super_admin    (Principal / Full Access)');
+        $this->command->info('│  james.taylor@vis-bali.sch.id       → school_admin   (Academic Director)');
+        $this->command->info('│  michelle.tan@vis-bali.sch.id       → admission_admin (Head of Admissions)');
+        $this->command->info('│  kevin.sanjaya@vis-bali.sch.id      → finance_admin  (Finance Manager)');
         $this->command->info('└────────────────────────────────────────────────────');
         $this->command->newLine();
 
         // ── PARENTS ─────────────────────────────────────────────────────────
-        $this->command->info('┌─ 👨‍👩‍👧 PARENTS (Tidak ada panel admin)');
-        $this->command->info('│  Akses  : Public registration form saja');
+        $this->command->info('┌─ 👨‍👩‍👧 PARENTS (25 users)  —  Portal: /my');
         $this->command->info('│  Role   : parent (school_id = 0)');
+        $this->command->info('│  Akses  : Portal /my (bukan panel admin)');
         $this->command->info('│');
-        $this->command->info('│  william.thompson@email.com');
-        $this->command->info('│  jennifer.martinez@email.com');
-        $this->command->info('│  alexander.brown@email.com');
-        $this->command->info('│  sophia.anderson@email.com');
-        $this->command->info('│  benjamin.davis@email.com');
-        $this->command->info('│  olivia.wilson@email.com');
-        $this->command->info('│  daniel.garcia@email.com');
-        $this->command->info('│  emma.rodriguez@email.com');
-        $this->command->info('│  matthew.lee@email.com');
-        $this->command->info('│  isabella.kim@email.com');
+        $this->command->info('│  william.thompson@email.com    jennifer.martinez@email.com');
+        $this->command->info('│  alexander.brown@email.com     sophia.anderson@email.com');
+        $this->command->info('│  benjamin.davis@email.com      olivia.wilson@email.com');
+        $this->command->info('│  daniel.garcia@email.com       emma.rodriguez@email.com');
+        $this->command->info('│  matthew.lee@email.com         isabella.kim@email.com');
+        $this->command->info('│  jonathan.park@email.com       priya.sharma@email.com');
+        $this->command->info('│  david.nguyen@email.com        sarah.chen@email.com');
+        $this->command->info('│  ryan.johnson@email.com        meilin.zhang@email.com');
+        $this->command->info('│  patrick.obrien@email.com      anita.krishnan@email.com');
+        $this->command->info('│  thomas.mueller@email.com      yuki.tanaka@email.com');
+        $this->command->info('│  robert.santos@email.com       christine.lim@email.com');
+        $this->command->info('│  marcus.williams@email.com     hana.jeon@email.com');
+        $this->command->info('│  ahmad.fauzi@email.com');
         $this->command->info('└────────────────────────────────────────────────────');
         $this->command->newLine();
 
         // ── ROLE SUMMARY TABLE ──────────────────────────────────────────────
         $this->command->info('📋 RINGKASAN ROLE & AKSES:');
         $this->command->table(
-            ['Role', 'Scope', 'Panel', 'Hak Akses Utama'],
+            ['Role', 'Users', 'Panel', 'Hak Akses Utama'],
             [
-                ['super_admin',    'Global (school_id=0)',  '/superadmin',     'Semua fitur + semua sekolah'],
-                ['super_admin',    'Per Sekolah',           '/school/s/{code}','Full akses dalam 1 tenant'],
-                ['school_admin',   'Per Sekolah',           '/school/s/{code}','Manajemen sekolah + user'],
-                ['admission_admin','Per Sekolah',           '/school/s/{code}','Aplikasi + dokumen + jadwal'],
-                ['finance_admin',  'Per Sekolah',           '/school/s/{code}','Pembayaran + laporan keuangan'],
-                ['parent',         'Global (school_id=0)',  'Tidak ada panel', 'Form pendaftaran publik saja'],
+                ['super_admin (global)',  '1',  '/superadmin',      'Semua fitur + semua sekolah'],
+                ['super_admin (per school)','3', '/school/s/{code}', 'Full akses dalam 1 tenant (Principal)'],
+                ['school_admin',          '3',  '/school/s/{code}', 'Manajemen sekolah + user'],
+                ['admission_admin',       '3',  '/school/s/{code}', 'Aplikasi + dokumen + jadwal'],
+                ['finance_admin',         '3',  '/school/s/{code}', 'Pembayaran + laporan keuangan'],
+                ['parent',                '25', '/my',              'Portal orang tua (aplikasi sendiri)'],
             ]
         );
         $this->command->newLine();
@@ -225,8 +190,8 @@ class DatabaseSeeder extends Seeder
         $this->command->info('     Contoh: sarah.johnson@vis-bin.sch.id / password');
         $this->command->newLine();
 
-        $this->command->info('  3. Jalankan ApplicationSeeder untuk data sample:');
-        $this->command->info('     php artisan db:seed --class=ApplicationSeeder');
+        $this->command->info('  3. Data sample aplikasi (45 total, 15 per sekolah):');
+        $this->command->info('     Semua status tersedia: draft → enrolled + waitlisted + withdrawn');
         $this->command->newLine();
 
         $this->command->info('════════════════════════════════════════════════════════');

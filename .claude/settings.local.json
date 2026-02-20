@@ -4,7 +4,16 @@
       "Bash(ls:*)",
       "Bash(cmd /c \"composer require barryvdh/laravel-dompdf 2>&1\")",
       "Bash(powershell -Command \"ls $env:USERPROFILE\\\\AppData\\\\Roaming\\\\Composer\\\\cache\\\\files\\\\barryvdh\\\\ 2>&1\")",
-      "Bash(powershell -Command \"php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Http\\\\Controllers\\\\SecureFileController.php'' 2>&1; php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\School\\\\Resources\\\\Applications\\\\Pages\\\\ViewApplication.php'' 2>&1; php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\My\\\\Resources\\\\Applications\\\\Pages\\\\ViewApplication.php'' 2>&1\")"
+      "Bash(powershell -Command \"php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Http\\\\Controllers\\\\SecureFileController.php'' 2>&1; php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\School\\\\Resources\\\\Applications\\\\Pages\\\\ViewApplication.php'' 2>&1; php -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\My\\\\Resources\\\\Applications\\\\Pages\\\\ViewApplication.php'' 2>&1\")",
+      "Bash(php -l:*)",
+      "Bash(/c/php84/php.exe:*)",
+      "Bash(cmd.exe /c \"cd /d D:\\\\Projects\\\\Ardika\\\\ppdb-app && php -l database\\\\seeders\\\\UserSeeder.php && php -l database\\\\seeders\\\\ApplicationSeeder.php && php -l database\\\\seeders\\\\DatabaseSeeder.php\")",
+      "Bash(cmd.exe /c \"\"\"C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat\"\" -l D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\UserSeeder.php\")",
+      "Bash(cmd.exe /c \"\"\"C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat\"\" -l D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\ApplicationSeeder.php\")",
+      "Bash(cmd.exe /c \"\\\\\"C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat\\\\\" -l D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\UserSeeder.php 2>&1\":*)",
+      "Bash(cmd.exe /c:*)",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\UserSeeder.php''\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\ApplicationSeeder.php'' ; & ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\DatabaseSeeder.php''\")"
     ]
   }
 }

@@ -61,32 +61,32 @@ class UserSeeder extends Seeder
             |--------------------------------------------------------------------------
             | 2. SCHOOL STAFF (TENANT = school_id)
             |--------------------------------------------------------------------------
-            | Setiap sekolah memiliki:
-            |   - 1 super_admin  → akses penuh di school panel (tenant-scoped)
-            |   - 1 school_admin → manajemen sekolah
+            | Setiap sekolah memiliki 4 staff dengan role berbeda:
+            |   - 1 super_admin    → akses penuh di school panel (IT / Kepala Sistem)
+            |   - 1 school_admin   → manajemen sekolah (Principal)
             |   - 1 admission_admin → proses penerimaan
-            |   - 1 finance_admin → manajemen pembayaran
+            |   - 1 finance_admin  → manajemen pembayaran
             |--------------------------------------------------------------------------
             */
 
             $staffData = [
                 'VIS-BIN' => [
-                    ['name' => 'Sarah Johnson',   'role' => 'super_admin'],
-                    ['name' => 'Michael Chen',    'role' => 'school_admin'],
-                    ['name' => 'Lisa Wong',       'role' => 'admission_admin'],
-                    ['name' => 'Robert Bintaro',  'role' => 'finance_admin'],
+                    ['name' => 'Sarah Johnson',    'role' => 'super_admin',    'occupation' => 'School Principal'],
+                    ['name' => 'Michael Chen',     'role' => 'school_admin',   'occupation' => 'Academic Director'],
+                    ['name' => 'Lisa Wong',        'role' => 'admission_admin','occupation' => 'Head of Admissions'],
+                    ['name' => 'Robert Bintaro',   'role' => 'finance_admin',  'occupation' => 'Finance Manager'],
                 ],
                 'VIS-KG' => [
-                    ['name' => 'David Kumar',     'role' => 'super_admin'],
-                    ['name' => 'Emma Wilson',     'role' => 'school_admin'],
-                    ['name' => 'Robert Lee',      'role' => 'admission_admin'],
-                    ['name' => 'Cynthia Park',    'role' => 'finance_admin'],
+                    ['name' => 'David Kumar',      'role' => 'super_admin',    'occupation' => 'School Principal'],
+                    ['name' => 'Emma Wilson',      'role' => 'school_admin',   'occupation' => 'Academic Director'],
+                    ['name' => 'Robert Lee',       'role' => 'admission_admin','occupation' => 'Head of Admissions'],
+                    ['name' => 'Cynthia Park',     'role' => 'finance_admin',  'occupation' => 'Finance Manager'],
                 ],
                 'VIS-BALI' => [
-                    ['name' => 'Amanda Martinez', 'role' => 'super_admin'],
-                    ['name' => 'James Taylor',    'role' => 'school_admin'],
-                    ['name' => 'Michelle Tan',    'role' => 'admission_admin'],
-                    ['name' => 'Kevin Sanjaya',   'role' => 'finance_admin'],
+                    ['name' => 'Amanda Martinez',  'role' => 'super_admin',    'occupation' => 'School Principal'],
+                    ['name' => 'James Taylor',     'role' => 'school_admin',   'occupation' => 'Academic Director'],
+                    ['name' => 'Michelle Tan',     'role' => 'admission_admin','occupation' => 'Head of Admissions'],
+                    ['name' => 'Kevin Sanjaya',    'role' => 'finance_admin',  'occupation' => 'Finance Manager'],
                 ],
             ];
 
@@ -105,16 +105,16 @@ class UserSeeder extends Seeder
 
                 foreach ($staffData[$school->code] as $staff) {
 
-                    $emailSlug = strtolower(str_replace(' ', '.', $staff['name']));
-                    $schoolSlug = strtolower(str_replace('-', '-', $school->code));
-                    $email = "{$emailSlug}@{$schoolSlug}.sch.id";
+                    $emailSlug   = strtolower(str_replace([' ', "'"], ['.', ''], $staff['name']));
+                    $schoolSlug  = strtolower($school->code);
+                    $email       = "{$emailSlug}@{$schoolSlug}.sch.id";
 
                     $user = User::create([
                         'name'              => $staff['name'],
                         'email'             => $email,
                         'password'          => Hash::make('password'),
                         'phone'             => '+62-812-' . rand(1000, 9999) . '-' . rand(1000, 9999),
-                        'occupation'        => str_replace('_', ' ', $staff['role']),
+                        'occupation'        => $staff['occupation'],
                         'address'           => "Campus office {$school->name}, {$school->city}",
                         'school_id'         => $school->id,
                         'is_active'         => true,
@@ -151,7 +151,7 @@ class UserSeeder extends Seeder
 
                     $user->assignRole($role);
 
-                    $this->command->info("      ✓ {$staff['name']} ({$staff['role']})");
+                    $this->command->info("      ✓ {$staff['name']} ({$staff['role']}) — {$email}");
                 }
             }
 
@@ -159,27 +159,53 @@ class UserSeeder extends Seeder
             |--------------------------------------------------------------------------
             | 3. PARENTS (GLOBAL TENANT = 0)
             |--------------------------------------------------------------------------
-            | Parent tidak terikat ke sekolah tertentu. school_id = 0.
-            | Mereka hanya bisa akses public registration form, bukan panel admin.
+            | 25 parent users mencakup kebutuhan 45 aplikasi (15 per sekolah × 3).
+            | Setiap parent memiliki ~2 anak yang mendaftar ke sekolah berbeda.
+            | Parents tidak terikat ke sekolah tertentu: school_id = 0.
+            | Akses: portal /my (bukan panel admin).
             |--------------------------------------------------------------------------
             */
 
-            $this->command->info('  Creating Parent Users...');
+            $this->command->info('  Creating Parent Users (25 parents)...');
 
             // ✅ Reset team context ke 0 untuk parents
             app(PermissionRegistrar::class)->setPermissionsTeamId(0);
 
             $parents = [
-                ['William Thompson',  'william.thompson@email.com'],
-                ['Jennifer Martinez', 'jennifer.martinez@email.com'],
-                ['Alexander Brown',   'alexander.brown@email.com'],
-                ['Sophia Anderson',   'sophia.anderson@email.com'],
-                ['Benjamin Davis',    'benjamin.davis@email.com'],
-                ['Olivia Wilson',     'olivia.wilson@email.com'],
-                ['Daniel Garcia',     'daniel.garcia@email.com'],
-                ['Emma Rodriguez',    'emma.rodriguez@email.com'],
-                ['Matthew Lee',       'matthew.lee@email.com'],
-                ['Isabella Kim',      'isabella.kim@email.com'],
+                // Batch 1 — International Mix (mostly Jakarta / Bintaro area)
+                ['name' => 'William Thompson',   'email' => 'william.thompson@email.com',   'occ' => 'Software Engineer',    'addr' => 'Bintaro, Tangerang Selatan'],
+                ['name' => 'Jennifer Martinez',  'email' => 'jennifer.martinez@email.com',  'occ' => 'Doctor',               'addr' => 'Bintaro, Tangerang Selatan'],
+                ['name' => 'Alexander Brown',    'email' => 'alexander.brown@email.com',    'occ' => 'Business Owner',       'addr' => 'BSD City, Tangerang'],
+                ['name' => 'Sophia Anderson',    'email' => 'sophia.anderson@email.com',    'occ' => 'Marketing Manager',    'addr' => 'Bintaro, Tangerang Selatan'],
+                ['name' => 'Benjamin Davis',     'email' => 'benjamin.davis@email.com',     'occ' => 'Financial Analyst',    'addr' => 'Pondok Indah, Jakarta Selatan'],
+
+                // Batch 2 — Kelapa Gading / Jakarta Utara area
+                ['name' => 'Olivia Wilson',      'email' => 'olivia.wilson@email.com',      'occ' => 'Entrepreneur',         'addr' => 'Kelapa Gading, Jakarta Utara'],
+                ['name' => 'Daniel Garcia',      'email' => 'daniel.garcia@email.com',      'occ' => 'Lawyer',               'addr' => 'Kelapa Gading, Jakarta Utara'],
+                ['name' => 'Emma Rodriguez',     'email' => 'emma.rodriguez@email.com',     'occ' => 'Architect',            'addr' => 'Sunter, Jakarta Utara'],
+                ['name' => 'Matthew Lee',        'email' => 'matthew.lee@email.com',        'occ' => 'Finance Manager',      'addr' => 'Kelapa Gading, Jakarta Utara'],
+                ['name' => 'Isabella Kim',       'email' => 'isabella.kim@email.com',       'occ' => 'Teacher',              'addr' => 'Tanjung Priok, Jakarta Utara'],
+
+                // Batch 3 — Bali / Expat mix
+                ['name' => 'Jonathan Park',      'email' => 'jonathan.park@email.com',      'occ' => 'Consultant',           'addr' => 'Sanur, Denpasar'],
+                ['name' => 'Priya Sharma',       'email' => 'priya.sharma@email.com',       'occ' => 'Doctor',               'addr' => 'Seminyak, Badung'],
+                ['name' => 'David Nguyen',       'email' => 'david.nguyen@email.com',       'occ' => 'Project Manager',      'addr' => 'Sanur, Denpasar'],
+                ['name' => 'Sarah Chen',         'email' => 'sarah.chen@email.com',         'occ' => 'Interior Designer',    'addr' => 'Canggu, Badung'],
+                ['name' => 'Ryan Johnson',       'email' => 'ryan.johnson@email.com',       'occ' => 'Entrepreneur',         'addr' => 'Ubud, Gianyar'],
+
+                // Batch 4 — Multi-campus parents (kids in different schools)
+                ['name' => 'Mei Lin Zhang',      'email' => 'meilin.zhang@email.com',       'occ' => 'Software Engineer',    'addr' => 'Bintaro, Tangerang Selatan'],
+                ['name' => 'Patrick O\'Brien',   'email' => 'patrick.obrien@email.com',     'occ' => 'Business Owner',       'addr' => 'Kelapa Gading, Jakarta Utara'],
+                ['name' => 'Anita Krishnan',     'email' => 'anita.krishnan@email.com',     'occ' => 'Accountant',           'addr' => 'Pondok Pinang, Jakarta Selatan'],
+                ['name' => 'Thomas Mueller',     'email' => 'thomas.mueller@email.com',     'occ' => 'Engineer',             'addr' => 'Kemang, Jakarta Selatan'],
+                ['name' => 'Yuki Tanaka',        'email' => 'yuki.tanaka@email.com',        'occ' => 'Marketing Director',   'addr' => 'Menteng, Jakarta Pusat'],
+
+                // Batch 5 — Additional diverse parents
+                ['name' => 'Robert Santos',      'email' => 'robert.santos@email.com',      'occ' => 'HR Manager',           'addr' => 'Kelapa Gading, Jakarta Utara'],
+                ['name' => 'Christine Lim',      'email' => 'christine.lim@email.com',      'occ' => 'Educator',             'addr' => 'Bintaro, Tangerang Selatan'],
+                ['name' => 'Marcus Williams',    'email' => 'marcus.williams@email.com',    'occ' => 'Financial Advisor',    'addr' => 'Sanur, Denpasar'],
+                ['name' => 'Hana Jeon',          'email' => 'hana.jeon@email.com',          'occ' => 'Doctor',               'addr' => 'Ciputat, Tangerang Selatan'],
+                ['name' => 'Ahmad Fauzi',        'email' => 'ahmad.fauzi@email.com',        'occ' => 'Business Owner',       'addr' => 'Kebayoran Baru, Jakarta Selatan'],
             ];
 
             $parentRole = Role::where('name', 'parent')
@@ -187,22 +213,15 @@ class UserSeeder extends Seeder
                 ->where('school_id', 0)
                 ->firstOrFail();
 
-            foreach ($parents as [$name, $email]) {
+            foreach ($parents as $data) {
 
                 $user = User::create([
-                    'name'              => $name,
-                    'email'             => $email,
+                    'name'              => $data['name'],
+                    'email'             => $data['email'],
                     'password'          => Hash::make('password'),
                     'phone'             => '+62-813-' . rand(1000, 9999) . '-' . rand(1000, 9999),
-                    'occupation'        => collect([
-                        'Entrepreneur', 'Doctor', 'Software Engineer', 'Teacher', 'Finance Manager',
-                    ])->random(),
-                    'address'           => collect([
-                        'Bintaro, Tangerang Selatan',
-                        'Kelapa Gading, Jakarta Utara',
-                        'Sanur, Denpasar',
-                        'BSD City, Tangerang',
-                    ])->random(),
+                    'occupation'        => $data['occ'],
+                    'address'           => $data['addr'],
                     'school_id'         => 0,
                     'is_active'         => true,
                     'email_verified_at' => now(),
@@ -210,6 +229,8 @@ class UserSeeder extends Seeder
 
                 $user->assignRole($parentRole);
             }
+
+            $this->command->info('    ✓ 25 parent users created');
 
             DB::commit();
 
@@ -228,17 +249,26 @@ class UserSeeder extends Seeder
                     ['School Admins',           3],
                     ['Admission Admins',        3],
                     ['Finance Admins',          3],
-                    ['Parents',                 10],
+                    ['Parents',                 25],
                     ['Total Roles',             Role::count()],
                     ['Total Role Assignments',  DB::table('model_has_roles')->count()],
                 ]
             );
             $this->command->newLine();
             $this->command->info('🔑 Login Credentials (password: "password")');
-            $this->command->info('   Global Super Admin : superadmin@vis.sch.id');
-            $this->command->info('   VIS-BIN Super Admin: sarah.johnson@vis-bin.sch.id');
-            $this->command->info('   VIS-KG  Super Admin: david.kumar@vis-kg.sch.id');
-            $this->command->info('   VIS-BALI Super Admin: amanda.martinez@vis-bali.sch.id');
+            $this->command->info('   Global Super Admin    : superadmin@vis.sch.id');
+            $this->command->info('   VIS-BIN  (super_admin): sarah.johnson@vis-bin.sch.id');
+            $this->command->info('   VIS-BIN  (school_admin): michael.chen@vis-bin.sch.id');
+            $this->command->info('   VIS-BIN  (admission)  : lisa.wong@vis-bin.sch.id');
+            $this->command->info('   VIS-BIN  (finance)    : robert.bintaro@vis-bin.sch.id');
+            $this->command->info('   VIS-KG   (super_admin): david.kumar@vis-kg.sch.id');
+            $this->command->info('   VIS-KG   (school_admin): emma.wilson@vis-kg.sch.id');
+            $this->command->info('   VIS-KG   (admission)  : robert.lee@vis-kg.sch.id');
+            $this->command->info('   VIS-KG   (finance)    : cynthia.park@vis-kg.sch.id');
+            $this->command->info('   VIS-BALI (super_admin): amanda.martinez@vis-bali.sch.id');
+            $this->command->info('   VIS-BALI (school_admin): james.taylor@vis-bali.sch.id');
+            $this->command->info('   VIS-BALI (admission)  : michelle.tan@vis-bali.sch.id');
+            $this->command->info('   VIS-BALI (finance)    : kevin.sanjaya@vis-bali.sch.id');
             $this->command->newLine();
 
         } catch (\Throwable $e) {
