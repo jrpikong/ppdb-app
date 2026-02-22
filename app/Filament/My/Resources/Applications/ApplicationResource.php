@@ -68,9 +68,9 @@ class ApplicationResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        $userId = auth()->id();
+        $userId = static::getAuthenticatedUserId();
 
-        if (! $userId) {
+        if ($userId === null) {
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
 
@@ -93,9 +93,9 @@ class ApplicationResource extends Resource
      */
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $userId = auth()->id();
+        $userId = static::getAuthenticatedUserId();
 
-        if (! $userId) {
+        if ($userId === null) {
             return parent::getRecordRouteBindingEloquentQuery()->whereRaw('1 = 0');
         }
 
@@ -113,19 +113,37 @@ class ApplicationResource extends Resource
 
     public static function canView(Model $record): bool
     {
-        return $record->user_id === auth()->id();
+        $userId = static::getAuthenticatedUserId();
+
+        if ($userId === null) {
+            return false;
+        }
+
+        return (int) $record->user_id === $userId;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return $record->user_id === auth()->id()
-            && $record->status === 'draft';
+        $userId = static::getAuthenticatedUserId();
+
+        if ($userId === null) {
+            return false;
+        }
+
+        return (int) $record->user_id === $userId
+            && strtolower((string) $record->status) === 'draft';
     }
 
     public static function canDelete(Model $record): bool
     {
-        return $record->user_id === auth()->id()
-            && $record->status === 'draft';
+        $userId = static::getAuthenticatedUserId();
+
+        if ($userId === null) {
+            return false;
+        }
+
+        return (int) $record->user_id === $userId
+            && strtolower((string) $record->status) === 'draft';
     }
 
     // ==================== GLOBAL SEARCH ====================
@@ -156,9 +174,9 @@ class ApplicationResource extends Resource
      */
     public static function getNavigationBadge(): ?string
     {
-        $userId = auth()->id();
+        $userId = static::getAuthenticatedUserId();
 
-        if (! $userId) {
+        if ($userId === null) {
             return null;
         }
 
@@ -178,5 +196,14 @@ class ApplicationResource extends Resource
     public static function getNavigationBadgeTooltip(): ?string
     {
         return 'Incomplete draft applications';
+    }
+
+    private static function getAuthenticatedUserId(): ?int
+    {
+        if (! auth()->check()) {
+            return null;
+        }
+
+        return (int) auth()->id();
     }
 }

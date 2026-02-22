@@ -23,7 +23,18 @@ class CreateApplication extends CreateRecord
     // ──────────────────────────────────────────────────────────────────────────
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('edit', ['record' => $this->getRecord()]);
+        $resource = $this->getResource();
+        $record = $this->getRecord();
+
+        if ($record && $resource::canEdit($record)) {
+            return $resource::getUrl('edit', ['record' => $record]);
+        }
+
+        if ($record && $resource::canView($record)) {
+            return $resource::getUrl('view', ['record' => $record]);
+        }
+
+        return $resource::getUrl('index');
     }
 
     // ──────────────────────────────────────────────────────────────────────────
