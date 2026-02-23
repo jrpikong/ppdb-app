@@ -96,7 +96,7 @@ trait CanSubmitApplication
         }
 
         if ($record->documents()->count() < 1) {
-            $errors[] = '- Upload at least one document.';
+            $errors[] = '- Upload required document.';
         }
 
         if (

@@ -638,7 +638,7 @@ class Application extends Model
         $completed = count(array_filter($steps));
         $total = count($steps);
 
-        return round(($completed / $total) * 100);
+        return (int)round(($completed / $total) * 100);
     }
 
     // ==================== BOOT METHOD ====================
