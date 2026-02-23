@@ -4,6 +4,7 @@ use App\Http\Controllers\SecureFileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect('/my/login'));
+Route::get('/guide', fn() => view('welcome'))->name('welcome');
 
 Route::get('/privacy', fn () => view('legal.privacy'))->name('privacy');
 //Route::get('/terms',   fn () => view('legal.terms'))->name('terms');
