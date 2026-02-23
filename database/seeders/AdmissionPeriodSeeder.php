@@ -39,6 +39,10 @@ class AdmissionPeriodSeeder extends Seeder
                 $decisionDate = $endDate->copy()->addWeeks(2);
                 $enrollmentDeadline = $decisionDate->copy()->addWeeks(2);
 
+                // Only open for applications if the school is active
+                $isActive         = (bool) $school->is_active;
+                $allowApplications = $isActive;
+
                 AdmissionPeriod::create([
                     'school_id' => $school->id,
                     'academic_year_id' => $academicYear->id,
@@ -47,10 +51,12 @@ class AdmissionPeriodSeeder extends Seeder
                     'end_date' => $endDate,
                     'decision_date' => $decisionDate,
                     'enrollment_deadline' => $enrollmentDeadline,
-                    'is_active' => true,
-                    'allow_applications' => true,
+                    'is_active' => $isActive,
+                    'allow_applications' => $allowApplications,
                     'is_rolling' => false,
-                    'description' => "Main admission period for {$academicYear->name}.",
+                    'description' => $isActive
+                        ? "Main admission period for {$academicYear->name}. Applications are open."
+                        : "Admission period for {$academicYear->name}. Currently not accepting applications.",
                     'settings' => [
                         'max_applications' => 500,
                         'interview_required' => true,

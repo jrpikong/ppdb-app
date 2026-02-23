@@ -60,7 +60,7 @@ class LevelSeeder extends Seeder
                         'quota' => $levelData['quota'],
                         'annual_tuition_fee' => $levelData['tuition'],
                         'description' => $this->getDescription($levelData['category'], $levelData['name']),
-                        'is_active' => true,
+                        'is_active' => $school->is_active, // Only active for active schools
                     ]);
                     $created++;
                 }

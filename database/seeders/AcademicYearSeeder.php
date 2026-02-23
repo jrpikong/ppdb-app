@@ -21,6 +21,9 @@ class AcademicYearSeeder extends Seeder
         $endYear = $startYear + 1;
 
         foreach ($schools as $school) {
+            // Active academic year only for active schools
+            $isActive = (bool) $school->is_active;
+
             AcademicYear::create([
                 'school_id' => $school->id,
                 'name' => "{$startYear}-{$endYear}",
@@ -28,7 +31,7 @@ class AcademicYearSeeder extends Seeder
                 'end_year' => $endYear,
                 'start_date' => Carbon::create($startYear, 7, 1),
                 'end_date' => Carbon::create($endYear, 6, 30),
-                'is_active' => true,
+                'is_active' => $isActive,
                 'description' => "Academic Year {$startYear}-{$endYear} for {$school->name}",
             ]);
 

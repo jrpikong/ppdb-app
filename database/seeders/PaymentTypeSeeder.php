@@ -84,17 +84,29 @@ class PaymentTypeSeeder extends Seeder
         
         try {
             foreach ($schools as $school) {
+                // Use school-specific bank info; only active for active schools
+                $bankInfo = $school->is_active
+                    ? ($school->settings['bank_account'] ?? [
+                        'bank_name'      => 'Bank Mandiri',
+                        'account_number' => '137-00-1234567-8',
+                        'account_holder' => "PT Veritas Intercultural School {$school->name}",
+                        'swift_code'     => 'BMRIIDJA',
+                        'branch'         => $school->city,
+                    ])
+                    : [
+                        'bank_name'      => 'Bank Mandiri',
+                        'account_number' => 'N/A',
+                        'account_holder' => "PT Veritas Intercultural School {$school->name}",
+                        'swift_code'     => 'BMRIIDJA',
+                        'branch'         => $school->city,
+                    ];
+
                 foreach ($paymentTypes as $type) {
                     PaymentType::create(array_merge($type, [
-                        'school_id' => $school->id,
-                        'bank_info' => [
-                            'bank_name' => 'Bank Mandiri',
-                            'account_number' => '137-0012345678-9',
-                            'account_holder' => 'PT Veritas Intercultural School',
-                            'swift_code' => 'BMRIIDJA',
-                            'branch' => $school->city,
-                        ],
-                        'payment_instructions' => $this->getInstructions($type['name']),
+                        'school_id'           => $school->id,
+                        'is_active'           => $school->is_active, // Inherit from school status
+                        'bank_info'           => $bankInfo,
+                        'payment_instructions'=> $this->getInstructions($type['name']),
                     ]));
                     $created++;
                 }

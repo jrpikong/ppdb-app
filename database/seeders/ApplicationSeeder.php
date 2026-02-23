@@ -78,8 +78,8 @@ class ApplicationSeeder extends Seeder
         $this->command->info('📝 Creating Student Applications with Complete Data...');
 
         DB::transaction(function () {
-            // ✅ Order by ID for consistent school → name-group assignment
-            $schools = School::orderBy('id')->get();
+            // ✅ Only seed applications for ACTIVE schools (VIS-BIN only for trial)
+            $schools = School::where('is_active', true)->orderBy('id')->get();
 
             // Get all parent users (created by UserSeeder)
             $parentUsers = User::whereHas('roles', function ($query) {

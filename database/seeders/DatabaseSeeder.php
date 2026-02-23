@@ -11,30 +11,30 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      *
-     * Executes seeders in the correct order for VIS multi-tenant admission system
+     * Executes seeders in the correct order for VIS Bintaro admission system.
+     * Primary school: VIS-BIN (active). VIS-KG & VIS-BALI seeded as inactive reference data.
      */
     public function run(): void
     {
         $this->command->newLine();
-        $this->command->info('╔════════════════════════════════════════════════════════╗');
-        $this->command->info('║  VIS ADMISSION SYSTEM - DATABASE SEEDING              ║');
-        $this->command->info('║  Multi-Tenancy with Filament                          ║');
-        $this->command->info('╚════════════════════════════════════════════════════════╝');
+        $this->command->info('╔═════════════════════════════════════════════════════════╗');
+        $this->command->info('║  VIS BINTARO ADMISSION SYSTEM - DATABASE SEEDING        ║');
+        $this->command->info('║  Primary School: VIS Bintaro (Active)                   ║');
+        $this->command->info('╚═════════════════════════════════════════════════════════╝');
         $this->command->newLine();
 
         $startTime = microtime(true);
 
-        // Execute seeders in dependency order
         $seeders = [
             RolePermissionSeeder::class,  // 1. Roles & permissions (global templates)
-            SchoolSeeder::class,           // 2. Schools (tenants)
-            SettingSeeder::class,          // 3. Default settings per school
+            SchoolSeeder::class,           // 2. Schools (VIS-BIN active, KG & BALI inactive)
+            SettingSeeder::class,          // 3. System settings (VIS Bintaro config)
             AcademicYearSeeder::class,     // 4. Academic years per school
             LevelSeeder::class,            // 5. Education levels per school
             AdmissionPeriodSeeder::class,  // 6. Admission periods per school
             PaymentTypeSeeder::class,      // 7. Payment types per school
-            UserSeeder::class,             // 8. Users with roles (depends on schools)
-            ApplicationSeeder::class,      // 9. Sample applications (optional)
+            UserSeeder::class,             // 8. Users with roles
+            ApplicationSeeder::class,      // 9. Sample applications (VIS-BIN only)
         ];
 
         foreach ($seeders as $index => $seeder) {
@@ -43,14 +43,13 @@ class DatabaseSeeder extends Seeder
             $this->call($seeder);
         }
 
-        $endTime = microtime(true);
+        $endTime  = microtime(true);
         $duration = round($endTime - $startTime, 2);
 
-        // Final Summary
         $this->command->newLine();
-        $this->command->info('════════════════════════════════════════════════════════');
+        $this->command->info('══════════════════════════════════════════════════════════');
         $this->command->info('✅ DATABASE SEEDING COMPLETED SUCCESSFULLY!');
-        $this->command->info('════════════════════════════════════════════════════════');
+        $this->command->info('══════════════════════════════════════════════════════════');
         $this->command->newLine();
 
         $this->displaySummary();
@@ -68,27 +67,27 @@ class DatabaseSeeder extends Seeder
         $this->command->newLine();
 
         $summary = [
-            ['Component',          'Count', 'Status'],
-            ['─────────────────',  '─────', '────────'],
-            ['Roles',              '5 global + 15 tenant', '✓'],
-            ['Permissions',        '90+',   '✓'],
-            ['Schools',            '3',     '✓'],
-            ['Academic Years',     '3',     '✓'],
-            ['Levels',             '36',    '✓'],
-            ['Admission Periods',  '3',     '✓'],
-            ['Payment Types',      '18',    '✓'],
-            ['Users',              '38',    '✓'],
-            ['Applications',       '45',    '✓'],
-            ['─────────────────',  '─────', '────────'],
-            ['TOTAL RECORDS',      '~240+', '✓'],
+            ['Component',               'VIS-BIN (Active)',  'KG & BALI (Inactive)'],
+            ['────────────────────────','─────────────────', '─────────────────────'],
+            ['Academic Years',           '1 (active)',        '2 (inactive)'],
+            ['Education Levels',         '12 (active)',       '24 (inactive)'],
+            ['Admission Periods',        '1 (open)',          '2 (closed)'],
+            ['Payment Types',            '6 (active)',        '12 (inactive)'],
+            ['Staff Users',              '4 (active)',        '8 (inactive)'],
+            ['Sample Applications',      '15',                '0'],
+            ['────────────────────────','─────────────────', '─────────────────────'],
+            ['Roles',                    '5 global + tenant roles', ''],
+            ['Permissions',              '90+',               ''],
+            ['Parent Users',             '25 (active)',       ''],
+            ['Global Super Admin',       '1',                 ''],
         ];
 
         foreach ($summary as $row) {
             $this->command->info(sprintf(
-                '  %-18s %-24s %s',
+                '  %-26s %-22s %s',
                 $row[0],
                 $row[1],
-                $row[2]
+                $row[2] ?? ''
             ));
         }
 
@@ -97,52 +96,30 @@ class DatabaseSeeder extends Seeder
 
     private function displayCredentials(): void
     {
-        $this->command->info('════════════════════════════════════════════════════════');
+        $this->command->info('══════════════════════════════════════════════════════════');
         $this->command->info('🔑 LOGIN CREDENTIALS (Password semua: "password")');
-        $this->command->info('════════════════════════════════════════════════════════');
+        $this->command->info('══════════════════════════════════════════════════════════');
         $this->command->newLine();
 
-        // ── GLOBAL SUPER ADMIN ──────────────────────────────────────────────
-        $this->command->info('┌─ 🌐 GLOBAL SUPER ADMIN');
-        $this->command->info('│  Panel  : /superadmin');
-        $this->command->info('│  Akses  : Semua sekolah, semua fitur sistem');
+        // ── VIS BINTARO — PRIMARY ACTIVE SCHOOL ─────────────────────────────
+        $this->command->info('┌─ 🏫 VIS BINTARO — ACTIVE  (/school/s/VIS-BIN)');
         $this->command->info('│');
-        $this->command->info('│  Email  : superadmin@vis.sch.id');
-        $this->command->info('│  Role   : super_admin (school_id = 0)');
-        $this->command->info('└────────────────────────────────────────────────────');
-        $this->command->newLine();
-
-        // ── VIS BINTARO ─────────────────────────────────────────────────────
-        $this->command->info('┌─ 🏫 VIS BINTARO (VIS-BIN)  —  /school/s/VIS-BIN');
         $this->command->info('│  sarah.johnson@vis-bin.sch.id       → super_admin    (Principal / Full Access)');
         $this->command->info('│  michael.chen@vis-bin.sch.id        → school_admin   (Academic Director)');
         $this->command->info('│  lisa.wong@vis-bin.sch.id           → admission_admin (Head of Admissions)');
         $this->command->info('│  robert.bintaro@vis-bin.sch.id      → finance_admin  (Finance Manager)');
-        $this->command->info('└────────────────────────────────────────────────────');
+        $this->command->info('└─────────────────────────────────────────────────────────');
         $this->command->newLine();
 
-        // ── VIS KELAPA GADING ───────────────────────────────────────────────
-        $this->command->info('┌─ 🏫 VIS KELAPA GADING (VIS-KG)  —  /school/s/VIS-KG');
-        $this->command->info('│  david.kumar@vis-kg.sch.id          → super_admin    (Principal / Full Access)');
-        $this->command->info('│  emma.wilson@vis-kg.sch.id          → school_admin   (Academic Director)');
-        $this->command->info('│  robert.lee@vis-kg.sch.id           → admission_admin (Head of Admissions)');
-        $this->command->info('│  cynthia.park@vis-kg.sch.id         → finance_admin  (Finance Manager)');
-        $this->command->info('└────────────────────────────────────────────────────');
-        $this->command->newLine();
-
-        // ── VIS BALI ────────────────────────────────────────────────────────
-        $this->command->info('┌─ 🏫 VIS BALI (VIS-BALI)  —  /school/s/VIS-BALI');
-        $this->command->info('│  amanda.martinez@vis-bali.sch.id    → super_admin    (Principal / Full Access)');
-        $this->command->info('│  james.taylor@vis-bali.sch.id       → school_admin   (Academic Director)');
-        $this->command->info('│  michelle.tan@vis-bali.sch.id       → admission_admin (Head of Admissions)');
-        $this->command->info('│  kevin.sanjaya@vis-bali.sch.id      → finance_admin  (Finance Manager)');
-        $this->command->info('└────────────────────────────────────────────────────');
+        // ── GLOBAL SUPER ADMIN ──────────────────────────────────────────────
+        $this->command->info('┌─ 🌐 GLOBAL SUPER ADMIN  (/superadmin)');
+        $this->command->info('│  superadmin@vis.sch.id  → Group Director (all-school access)');
+        $this->command->info('└─────────────────────────────────────────────────────────');
         $this->command->newLine();
 
         // ── PARENTS ─────────────────────────────────────────────────────────
         $this->command->info('┌─ 👨‍👩‍👧 PARENTS (25 users)  —  Portal: /my');
-        $this->command->info('│  Role   : parent (school_id = 0)');
-        $this->command->info('│  Akses  : Portal /my (bukan panel admin)');
+        $this->command->info('│  Role   : parent  |  Area: Bintaro / Jakarta Selatan / Tangerang Selatan');
         $this->command->info('│');
         $this->command->info('│  william.thompson@email.com    jennifer.martinez@email.com');
         $this->command->info('│  alexander.brown@email.com     sophia.anderson@email.com');
@@ -157,20 +134,26 @@ class DatabaseSeeder extends Seeder
         $this->command->info('│  robert.santos@email.com       christine.lim@email.com');
         $this->command->info('│  marcus.williams@email.com     hana.jeon@email.com');
         $this->command->info('│  ahmad.fauzi@email.com');
-        $this->command->info('└────────────────────────────────────────────────────');
+        $this->command->info('└─────────────────────────────────────────────────────────');
         $this->command->newLine();
 
-        // ── ROLE SUMMARY TABLE ──────────────────────────────────────────────
-        $this->command->info('📋 RINGKASAN ROLE & AKSES:');
+        // ── INACTIVE SCHOOLS (reference only) ──────────────────────────────
+        $this->command->info('┌─ ⏸️  INACTIVE SCHOOLS (staff cannot login — is_active = false)');
+        $this->command->info('│  VIS-KG   : david.kumar@vis-kg.sch.id (and 3 others)');
+        $this->command->info('│  VIS-BALI : amanda.martinez@vis-bali.sch.id (and 3 others)');
+        $this->command->info('└─────────────────────────────────────────────────────────');
+        $this->command->newLine();
+
+        $this->command->info('📋 RINGKASAN ROLE & AKSES (VIS BINTARO):');
         $this->command->table(
-            ['Role', 'Users', 'Panel', 'Hak Akses Utama'],
+            ['Role', 'User', 'Panel', 'Hak Akses Utama'],
             [
-                ['super_admin (global)',  '1',  '/superadmin',      'Semua fitur + semua sekolah'],
-                ['super_admin (per school)','3', '/school/s/{code}', 'Full akses dalam 1 tenant (Principal)'],
-                ['school_admin',          '3',  '/school/s/{code}', 'Manajemen sekolah + user'],
-                ['admission_admin',       '3',  '/school/s/{code}', 'Aplikasi + dokumen + jadwal'],
-                ['finance_admin',         '3',  '/school/s/{code}', 'Pembayaran + laporan keuangan'],
-                ['parent',                '25', '/my',              'Portal orang tua (aplikasi sendiri)'],
+                ['super_admin (global)', 'superadmin@vis.sch.id', '/superadmin', 'Semua fitur sistem'],
+                ['super_admin (BIN)',    'sarah.johnson@vis-bin.sch.id', '/school/s/VIS-BIN', 'Full akses (Principal)'],
+                ['school_admin',        'michael.chen@vis-bin.sch.id', '/school/s/VIS-BIN', 'Manajemen akademik'],
+                ['admission_admin',     'lisa.wong@vis-bin.sch.id', '/school/s/VIS-BIN', 'Aplikasi + dokumen + jadwal'],
+                ['finance_admin',       'robert.bintaro@vis-bin.sch.id', '/school/s/VIS-BIN', 'Pembayaran + laporan'],
+                ['parent',             'william.thompson@email.com (+ 24)', '/my', 'Portal orang tua'],
             ]
         );
         $this->command->newLine();
@@ -178,26 +161,29 @@ class DatabaseSeeder extends Seeder
 
     private function displayNextSteps(): void
     {
-        $this->command->info('🚀 NEXT STEPS:');
+        $this->command->info('🚀 NEXT STEPS FOR VIS BINTARO TRIAL:');
         $this->command->newLine();
 
-        $this->command->info('  1. Login Global Super Admin → /superadmin');
-        $this->command->info('     superadmin@vis.sch.id / password');
+        $this->command->info('  1. Login sebagai Principal (full access):');
+        $this->command->info('     URL  : /school/s/VIS-BIN');
+        $this->command->info('     Email: sarah.johnson@vis-bin.sch.id / password');
         $this->command->newLine();
 
-        $this->command->info('  2. Login Per-School → /school/s/{code}');
-        $this->command->info('     Gunakan email staff sekolah yang sesuai');
-        $this->command->info('     Contoh: sarah.johnson@vis-bin.sch.id / password');
+        $this->command->info('  2. Login sebagai Parent (portal pendaftaran):');
+        $this->command->info('     URL  : /my');
+        $this->command->info('     Email: william.thompson@email.com / password');
         $this->command->newLine();
 
-        $this->command->info('  3. Data sample aplikasi (45 total, 15 per sekolah):');
-        $this->command->info('     Semua status tersedia: draft → enrolled + waitlisted + withdrawn');
+        $this->command->info('  3. Data sample aplikasi (15 aplikasi — semua status):');
+        $this->command->info('     draft, submitted, under_review, documents_verified,');
+        $this->command->info('     interview_scheduled, interview_completed, payment_pending,');
+        $this->command->info('     payment_verified, accepted, enrolled, rejected, waitlisted, withdrawn');
         $this->command->newLine();
 
-        $this->command->info('════════════════════════════════════════════════════════');
-        $this->command->info('📚 Docs: PROJECT_SPECIFICATION_V2.md');
-        $this->command->info('🐛 Semua seeder dilengkapi error handling & rollback');
-        $this->command->info('════════════════════════════════════════════════════════');
+        $this->command->info('══════════════════════════════════════════════════════════');
+        $this->command->info('📚 Panduan: CLIENT_GUIDE_V2.md');
+        $this->command->info('🏫 Primary School: VIS Bintaro (Tangerang Selatan)');
+        $this->command->info('══════════════════════════════════════════════════════════');
         $this->command->newLine();
     }
 }
