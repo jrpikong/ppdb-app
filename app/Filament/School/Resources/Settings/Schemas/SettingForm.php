@@ -8,6 +8,7 @@ use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Facades\Filament;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -30,7 +31,10 @@ class SettingForm
                         Select::make('default_school_id')
                             ->relationship('defaultSchool', 'name')
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->default(fn () => Filament::getTenant()?->id),
                     ]),
 
                 Section::make('Admission')
