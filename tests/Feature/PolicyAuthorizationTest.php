@@ -9,6 +9,7 @@ use App\Models\AdmissionPeriod;
 use App\Models\Application;
 use App\Models\Document;
 use App\Models\Level;
+use App\Models\ParentGuardian;
 use App\Models\Payment;
 use App\Models\PaymentType;
 use App\Models\Role;
@@ -32,8 +33,14 @@ class PolicyAuthorizationTest extends TestCase
         $parentOther = $fixture['parent_other'];
         $application = $fixture['application'];
 
-        $this->assertTrue(
+        $this->assertFalse(
             Gate::forUser($parentOwner)->allows('transitionStatus', [$application, 'submitted'])
+        );
+
+        $this->makeApplicationSubmissionReady($application, $fixture['verified_pre_submission_payment']);
+
+        $this->assertTrue(
+            Gate::forUser($parentOwner)->allows('transitionStatus', [$application->fresh(), 'submitted'])
         );
 
         $this->assertFalse(
@@ -123,6 +130,7 @@ class PolicyAuthorizationTest extends TestCase
      *     school_b: School,
      *     application: Application,
      *     payment: Payment,
+     *     verified_pre_submission_payment: Payment,
      *     document: Document,
      *     schedule: Schedule,
      *     parent_owner: User,
@@ -220,6 +228,16 @@ class PolicyAuthorizationTest extends TestCase
             'status' => 'pending',
         ]);
 
+        $verifiedPreSubmissionPayment = Payment::create([
+            'application_id' => $application->id,
+            'payment_type_id' => $paymentType->id,
+            'transaction_code' => 'SCH-POL-A-PAY-20260220-0002',
+            'amount' => 1500000,
+            'currency' => 'IDR',
+            'payment_date' => now()->toDateString(),
+            'status' => 'verified',
+        ]);
+
         $document = Document::create([
             'application_id' => $application->id,
             'type' => 'birth_certificate',
@@ -244,11 +262,62 @@ class PolicyAuthorizationTest extends TestCase
             'school_b' => $schoolB,
             'application' => $application,
             'payment' => $payment,
+            'verified_pre_submission_payment' => $verifiedPreSubmissionPayment,
             'document' => $document,
             'schedule' => $schedule,
             'parent_owner' => $parentOwner,
             'parent_other' => $parentOther,
         ];
+    }
+
+    private function makeApplicationSubmissionReady(Application $application, Payment $verifiedPayment): void
+    {
+        $application->update([
+            'email' => 'student.policy@example.test',
+            'phone' => '081234567890',
+        ]);
+
+        ParentGuardian::create([
+            'application_id' => $application->id,
+            'type' => 'father',
+            'first_name' => 'Policy',
+            'last_name' => 'Father',
+            'relationship' => 'father',
+            'email' => 'policy-father@example.test',
+            'mobile' => '081111111111',
+            'is_primary_contact' => true,
+            'is_emergency_contact' => true,
+        ]);
+
+        ParentGuardian::create([
+            'application_id' => $application->id,
+            'type' => 'mother',
+            'first_name' => 'Policy',
+            'last_name' => 'Mother',
+            'relationship' => 'mother',
+            'email' => 'policy-mother@example.test',
+            'mobile' => '082222222222',
+            'is_primary_contact' => false,
+            'is_emergency_contact' => true,
+        ]);
+
+        foreach (Application::REQUIRED_DOCUMENT_TYPES as $index => $type) {
+            Document::firstOrCreate(
+                [
+                    'application_id' => $application->id,
+                    'type' => $type,
+                ],
+                [
+                    'name' => "{$type}.pdf",
+                    'file_path' => "documents/{$type}-{$index}.pdf",
+                    'file_type' => 'application/pdf',
+                    'file_size' => 1024,
+                    'status' => 'pending',
+                ]
+            );
+        }
+
+        $verifiedPayment->update(['status' => 'verified']);
     }
 
     private function createUserWithRole(string $roleName, int $roleTeamId, int $userSchoolId): User

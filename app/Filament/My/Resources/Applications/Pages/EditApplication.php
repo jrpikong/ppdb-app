@@ -41,6 +41,28 @@ class EditApplication extends EditRecord
             ]);
         }
 
+        unset(
+            $data['id'],
+            $data['user_id'],
+            $data['application_number'],
+            $data['status'],
+            $data['status_notes'],
+            $data['submitted_at'],
+            $data['reviewed_at'],
+            $data['decision_made_at'],
+            $data['enrolled_at'],
+            $data['decision_letter'],
+            $data['decision_letter_file'],
+            $data['assigned_to'],
+            $data['reviewed_by'],
+            $data['requires_observation'],
+            $data['requires_test'],
+            $data['requires_interview'],
+            $data['deleted_at'],
+            $data['created_at'],
+            $data['updated_at'],
+        );
+
         return $data;
     }
 

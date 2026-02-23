@@ -121,7 +121,7 @@ class ApplicationForm
                         ->preload(),
 
                     Hidden::make('academic_year_id'),
-                    Hidden::make('status')->default('draft'),
+                    Hidden::make('status')->default('draft')->dehydrated(false),
                 ]),
 
             // ══════════════════════════════════════════════════════════
@@ -185,7 +185,7 @@ class ApplicationForm
                             ->required()->searchable()->preload(),
 
                         Hidden::make('academic_year_id'),
-                        Hidden::make('status')->default('draft'),
+                        Hidden::make('status')->default('draft')->dehydrated(false),
                     ]),
 
                 // ─── Step 2: Student Biodata ────────────────────────────
@@ -377,9 +377,9 @@ class ApplicationForm
                                     ->helperText('Accepted: PDF, JPG / JPEG, PNG, WebP · Max 10 MB')
                                     ->columnSpanFull(),
                                 Textarea::make('description')->label('Notes (optional)')->rows(1)->columnSpanFull(),
-                                Hidden::make('status')->default('pending'),
-                                Hidden::make('file_type'),
-                                Hidden::make('file_size'),
+                                Hidden::make('status')->default('pending')->dehydrated(false),
+                                Hidden::make('file_type')->dehydrated(false),
+                                Hidden::make('file_size')->dehydrated(false),
                             ])
                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                                 $data['status'] = 'pending';
@@ -410,6 +410,9 @@ class ApplicationForm
                                 return $data;
                             })
                             ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                                $data['status'] = 'pending';
+                                unset($data['verified_by'], $data['verified_at'], $data['verification_notes'], $data['rejection_reason']);
+
                                 if (! empty($data['file_path'])) {
                                     if (Storage::disk('local')->exists($data['file_path'])) {
                                         try {
@@ -452,9 +455,9 @@ class ApplicationForm
                             ->schema([
                                 UnorderedList::make([
                                     Text::make(new HtmlString('<strong>Student biodata</strong> is complete and accurate'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('At least <strong>one parent / guardian</strong> contact is added'))->color('neutral')->size(TextSize::Small),
+                                    Text::make(new HtmlString('At least <strong>two parent / guardian</strong> contacts are added'))->color('neutral')->size(TextSize::Small),
                                     Text::make(new HtmlString('<strong>Current address</strong> is provided'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('At least <strong>one supporting document</strong> is uploaded'))->color('neutral')->size(TextSize::Small),
+                                    Text::make(new HtmlString('All <strong>9 required documents</strong> are uploaded'))->color('neutral')->size(TextSize::Small),
                                     Text::make(new HtmlString('All <strong>required fields</strong> in each step are filled'))->color('neutral')->size(TextSize::Small),
                                 ])->size(TextSize::Small),
                             ])->compact(),

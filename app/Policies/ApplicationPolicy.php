@@ -62,7 +62,8 @@ class ApplicationPolicy
         if ($this->isParent($user)) {
             return (int) $application->user_id === (int) $user->id
                 && (string) $application->status === 'draft'
-                && $toStatus === 'submitted';
+                && $toStatus === 'submitted'
+                && $application->canBeSubmitted();
         }
 
         return $this->isSchoolStaffFor($user, (int) $application->school_id)

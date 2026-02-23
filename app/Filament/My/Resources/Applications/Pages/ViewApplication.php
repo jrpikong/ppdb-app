@@ -79,17 +79,7 @@ class ViewApplication extends ViewRecord
      */
     public function getRequiredDocumentTypes(): array
     {
-        return [
-            'student_photo_1',
-            'student_photo_2',
-            'father_photo',
-            'mother_photo',
-            'father_id_card',
-            'mother_id_card',
-            'birth_certificate',
-            'family_card',
-            'latest_report_book',
-        ];
+        return Application::REQUIRED_DOCUMENT_TYPES;
     }
 
     /**
