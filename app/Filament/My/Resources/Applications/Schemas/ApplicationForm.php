@@ -23,14 +23,12 @@ use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
-use Filament\Schemas\Components\UnorderedList;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\FontWeight;
-use Filament\Support\Enums\TextSize;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
@@ -444,38 +442,20 @@ class ApplicationForm
                         Section::make()
                             ->schema([
                                 Text::make(new HtmlString(
-                                    '<span class="font-medium">Please review all the information you have entered.</span> ' .
-                                    'Once you click <strong>"Submit Application"</strong> from the page header, ' .
-                                    'your application will be <strong>locked</strong> and sent to the school for processing.'
+                                    '<span class="font-medium">Review all submitted data carefully.</span> ' .
+                                    'Use this preview to confirm student details, parent contacts, medical information, and documents ' .
+                                    'before sending the application to the school.'
                                 ))->color('neutral'),
                             ])->secondary()->compact(),
 
-                        Section::make('📋 Before Submitting')
-                            ->description('Make sure all of the following are complete:')
-                            ->schema([
-                                UnorderedList::make([
-                                    Text::make(new HtmlString('<strong>Student biodata</strong> is complete and accurate'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('At least <strong>two parent / guardian</strong> contacts are added'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('<strong>Current address</strong> is provided'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('All <strong>9 required documents</strong> are uploaded'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('All <strong>required fields</strong> in each step are filled'))->color('neutral')->size(TextSize::Small),
-                                ])->size(TextSize::Small),
-                            ])->compact(),
-
-                        Section::make('📬 After Submission')
-                            ->schema([
-                                UnorderedList::make([
-                                    Text::make(new HtmlString('🔒 Application becomes <strong>read-only</strong> — no further edits allowed'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('📧 You will receive a <strong>confirmation email</strong>'))->color('neutral')->size(TextSize::Small),
-                                    Text::make(new HtmlString('📋 The school will <strong>review your application</strong> and contact you'))->color('neutral')->size(TextSize::Small),
-                                ])->size(TextSize::Small),
-                            ])->compact()->secondary(),
+                        View::make('filament.my.resources.applications.schemas.review-preview'),
 
                         Section::make()
                             ->schema([
                                 Text::make(new HtmlString(
-                                    '✅ When you\'re ready, click the <strong>"Submit Application"</strong> button in the page header above.'
-                                ))->color('success')->weight(FontWeight::SemiBold)->size(TextSize::Medium),
+                                    'When ready, click <strong>"Submit Application"</strong> in the page header. ' .
+                                    'After submission, your application becomes read-only and enters school review workflow.'
+                                ))->color('success'),
                             ])->compact(),
                     ]),
 
