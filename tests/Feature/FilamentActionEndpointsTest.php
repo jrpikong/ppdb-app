@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Filament\My\Resources\Applications\Pages\EditApplication as MyEditApplicationPage;
 use App\Filament\My\Resources\Applications\Pages\ViewApplication as MyViewApplicationPage;
 use App\Models\AcademicYear;
 use App\Models\AdmissionPeriod;
@@ -11,6 +12,8 @@ use App\Models\Application;
 use App\Models\Document;
 use App\Models\Level;
 use App\Models\ParentGuardian;
+use App\Models\Payment;
+use App\Models\PaymentType;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\User;
@@ -93,6 +96,58 @@ class FilamentActionEndpointsTest extends TestCase
         ])->assertActionHidden('submitApplication');
     }
 
+    public function test_parent_cannot_tamper_application_status_via_edit_payload(): void
+    {
+        $fixture = $this->seedApplicationFixture();
+        $parent = $fixture['parent_owner'];
+        $application = $fixture['application'];
+
+        $this->actingAs($parent);
+        $this->setMyPanelContext();
+
+        Livewire::test(MyEditApplicationPage::class, [
+            'record' => $application->getKey(),
+        ])
+            ->set('data.status', 'submitted')
+            ->call('save');
+
+        $this->assertSame('draft', $application->fresh()->status);
+        $this->assertNull($application->fresh()->submitted_at);
+    }
+
+    public function test_parent_cannot_tamper_document_verification_status_via_edit_payload(): void
+    {
+        $fixture = $this->seedApplicationFixture();
+        $parent = $fixture['parent_owner'];
+        $application = $fixture['application'];
+        $document = $application->documents()->firstOrFail();
+
+        $this->actingAs($parent);
+        $this->setMyPanelContext();
+
+        $component = Livewire::test(MyEditApplicationPage::class, [
+            'record' => $application->getKey(),
+        ]);
+
+        /** @var array<array-key, mixed> $documentsState */
+        $documentsState = $component->get('data.documents');
+        $firstKey = array_key_first($documentsState);
+
+        $this->assertNotNull($firstKey);
+
+        $component
+            ->set("data.documents.{$firstKey}.status", 'approved')
+            ->set("data.documents.{$firstKey}.verified_by", 999999)
+            ->set("data.documents.{$firstKey}.verification_notes", 'forged-by-parent')
+            ->call('save');
+
+        $document->refresh();
+
+        $this->assertSame('pending', $document->status);
+        $this->assertNull($document->verified_by);
+        $this->assertNull($document->verification_notes);
+    }
+
     /**
      * @return array{
      *     school: School,
@@ -167,6 +222,11 @@ class FilamentActionEndpointsTest extends TestCase
         ]);
 
         if ($withRequiredSubmitData) {
+            $application->update([
+                'email' => 'student.action@example.test',
+                'phone' => '081234567890',
+            ]);
+
             ParentGuardian::create([
                 'application_id' => $application->id,
                 'type' => 'father',
@@ -179,14 +239,47 @@ class FilamentActionEndpointsTest extends TestCase
                 'is_emergency_contact' => true,
             ]);
 
-            Document::create([
+            ParentGuardian::create([
                 'application_id' => $application->id,
-                'type' => 'birth_certificate',
-                'name' => 'birth-certificate.pdf',
-                'file_path' => 'documents/birth-certificate.pdf',
-                'file_type' => 'application/pdf',
-                'file_size' => 1024,
-                'status' => 'pending',
+                'type' => 'mother',
+                'first_name' => 'Parent',
+                'last_name' => 'Owner',
+                'relationship' => 'mother',
+                'email' => 'parent.mother@example.test',
+                'phone' => '082345678901',
+                'is_primary_contact' => false,
+                'is_emergency_contact' => true,
+            ]);
+
+            foreach (Application::REQUIRED_DOCUMENT_TYPES as $index => $type) {
+                Document::create([
+                    'application_id' => $application->id,
+                    'type' => $type,
+                    'name' => "{$type}.pdf",
+                    'file_path' => "documents/{$type}-{$index}.pdf",
+                    'file_type' => 'application/pdf',
+                    'file_size' => 1024,
+                    'status' => 'pending',
+                ]);
+            }
+
+            $paymentType = PaymentType::create([
+                'school_id' => $school->id,
+                'code' => 'REG',
+                'name' => 'Registration',
+                'amount' => 1500000,
+                'payment_stage' => 'pre_submission',
+                'is_active' => true,
+            ]);
+
+            Payment::create([
+                'application_id' => $application->id,
+                'payment_type_id' => $paymentType->id,
+                'transaction_code' => 'SCH-FEAT-PAY-20260220-0001',
+                'amount' => 1500000,
+                'currency' => 'IDR',
+                'payment_date' => now()->toDateString(),
+                'status' => 'verified',
             ]);
         }
 

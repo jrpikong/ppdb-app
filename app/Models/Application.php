@@ -69,6 +69,18 @@ class Application extends Model
 {
     use SoftDeletes;
 
+    public const REQUIRED_DOCUMENT_TYPES = [
+        'student_photo_1',
+        'student_photo_2',
+        'father_photo',
+        'mother_photo',
+        'father_id_card',
+        'mother_id_card',
+        'birth_certificate',
+        'family_card',
+        'latest_report_book',
+    ];
+
     public const STATUSES = [
         'draft',
         'submitted',
@@ -531,6 +543,12 @@ class Application extends Model
                 ));
             }
 
+            if ($toStatus === 'submitted' && ! $locked->canBeSubmitted()) {
+                throw new RuntimeException(
+                    'Application is not eligible for submission. Complete all required data, documents, and verified pre-submission payment first.'
+                );
+            }
+
             $payload = [
                 'status' => $toStatus,
             ];
@@ -590,33 +608,55 @@ class Application extends Model
 
     public function canBeSubmitted(): bool
     {
-        // Check if saving seat payment is verified
-        $savingSeatPaid = $this->payments()
-            ->whereHas('paymentType', fn($q) => $q->where('payment_stage', 'pre_submission'))
+        return $this->isDraft()
+            && $this->hasSubmissionRequiredFields()
+            && $this->parentGuardians()->count() >= 2
+            && $this->hasAllRequiredDocuments()
+            && $this->hasVerifiedPreSubmissionPayment()
+            && $this->getCompletionPercentage() === 100;
+    }
+
+    public function hasVerifiedPreSubmissionPayment(): bool
+    {
+        return $this->payments()
+            ->whereHas('paymentType', fn ($query) => $query->where('payment_stage', 'pre_submission'))
             ->where('status', 'verified')
             ->exists();
+    }
 
-        return $this->isDraft() && $savingSeatPaid && $this->hasAllRequiredDocuments();
+    public function hasSubmissionRequiredFields(): bool
+    {
+        $requiredFields = [
+            'school_id',
+            'admission_period_id',
+            'level_id',
+            'student_first_name',
+            'student_last_name',
+            'gender',
+            'birth_date',
+            'nationality',
+            'email',
+            'phone',
+            'current_address',
+            'current_city',
+            'current_country',
+        ];
+
+        foreach ($requiredFields as $field) {
+            if (blank($this->{$field})) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function hasAllRequiredDocuments(): bool
     {
-        $requiredTypes = [
-            'student_photo_1',
-            'student_photo_2',
-            'father_photo',
-            'mother_photo',
-            'father_id_card',
-            'mother_id_card',
-            'birth_certificate',
-            'family_card',
-            'latest_report_book',
-        ];
-
         $uploadedTypes = $this->documents()->pluck('type')->toArray();
 
-        foreach ($requiredTypes as $type) {
-            if (!in_array($type, $uploadedTypes)) {
+        foreach (self::REQUIRED_DOCUMENT_TYPES as $type) {
+            if (! in_array($type, $uploadedTypes, true)) {
                 return false;
             }
         }
@@ -627,18 +667,18 @@ class Application extends Model
     public function getCompletionPercentage(): int
     {
         $steps = [
-            'personal_info' => !empty($this->student_first_name) && !empty($this->student_last_name) && !empty($this->birth_date),
-            'contact_info' => !empty($this->email) && !empty($this->phone),
-            'address' => !empty($this->current_address),
+            'personal_info' => filled($this->student_first_name) && filled($this->student_last_name) && filled($this->birth_date),
+            'contact_info' => filled($this->email) && filled($this->phone),
+            'address' => filled($this->current_address) && filled($this->current_city) && filled($this->current_country),
             'parents' => $this->parentGuardians()->count() >= 2,
             'documents' => $this->hasAllRequiredDocuments(),
-            'payment' => $this->payments()->where('status', 'verified')->exists(),
+            'payment' => $this->hasVerifiedPreSubmissionPayment(),
         ];
 
         $completed = count(array_filter($steps));
         $total = count($steps);
 
-        return round(($completed / $total) * 100);
+        return (int)round(($completed / $total) * 100);
     }
 
     // ==================== BOOT METHOD ====================

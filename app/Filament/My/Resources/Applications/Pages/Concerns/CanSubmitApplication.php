@@ -10,6 +10,24 @@ use RuntimeException;
 
 trait CanSubmitApplication
 {
+    /**
+     * @return array<int, string>
+     */
+    protected function getRequiredDocumentTypes(): array
+    {
+        return Application::REQUIRED_DOCUMENT_TYPES;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function getMissingRequiredDocuments(Application $record): array
+    {
+        $uploaded = $record->documents()->pluck('type')->toArray();
+
+        return array_values(array_diff($this->getRequiredDocumentTypes(), $uploaded));
+    }
+
     protected function submitApplication(Application $record): void
     {
         if ($record->status !== 'draft') {
@@ -80,6 +98,8 @@ trait CanSubmitApplication
             'gender' => 'Gender',
             'birth_date' => 'Birth Date',
             'nationality' => 'Nationality',
+            'email' => 'Student Email',
+            'phone' => 'Student Phone',
             'current_address' => 'Current Address',
             'current_city' => 'Current City',
             'current_country' => 'Current Country',
@@ -91,12 +111,27 @@ trait CanSubmitApplication
             }
         }
 
-        if ($record->parentGuardians()->count() < 1) {
-            $errors[] = '- Add at least one parent/guardian.';
+        if ($record->parentGuardians()->count() < 2) {
+            $errors[] = '- Add at least two parent/guardian contacts.';
         }
 
-        if ($record->documents()->count() < 1) {
-            $errors[] = '- Upload at least one document.';
+        $missingRequiredDocs = $this->getMissingRequiredDocuments($record);
+
+        if ($missingRequiredDocs !== []) {
+            $missingLabels = collect($missingRequiredDocs)
+                ->map(fn (string $type): string => (string) str($type)->replace('_', ' ')->title())
+                ->implode(', ');
+
+            $errors[] = '- Upload all 9 required documents before submitting.';
+            $errors[] = "- Missing documents: {$missingLabels}.";
+        }
+
+        if (! $record->hasVerifiedPreSubmissionPayment()) {
+            $errors[] = '- Saving Seat payment must be verified before submitting.';
+        }
+
+        if ($record->getCompletionPercentage() < 100) {
+            $errors[] = '- Application completeness must reach 100% before submitting.';
         }
 
         if (
@@ -119,6 +154,10 @@ trait CanSubmitApplication
             if ($duplicateExists) {
                 $errors[] = '- This child already has an active application in the same school and admission period.';
             }
+        }
+
+        if (! $record->canBeSubmitted()) {
+            $errors[] = '- Application is not yet eligible for submission.';
         }
 
         return $errors;

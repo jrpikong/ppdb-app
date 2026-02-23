@@ -136,7 +136,7 @@ class Payment extends Model
     protected function formattedAmount(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->currency . ' ' . number_format($this->amount, 2, '.', ',')
+            get: fn () => $this->currency . ' ' . number_format((float) $this->amount, 2, '.', ',')
         );
     }
 

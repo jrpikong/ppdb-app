@@ -8,12 +8,15 @@ use App\Models\AcademicYear;
 use App\Models\ActivityLog;
 use App\Models\AdmissionPeriod;
 use App\Models\Application;
+use App\Models\Document;
 use App\Models\Level;
+use App\Models\ParentGuardian;
 use App\Models\Payment;
 use App\Models\PaymentType;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Spatie\Permission\PermissionRegistrar;
@@ -25,7 +28,7 @@ class WorkflowHardeningTest extends TestCase
 
     public function test_application_submit_is_idempotent_and_logged(): void
     {
-        $fixture = $this->seedBaseFixture();
+        $fixture = $this->seedBaseFixture(readyForSubmit: true);
         $application = $fixture['application'];
         $parent = $fixture['parent'];
 
@@ -46,7 +49,7 @@ class WorkflowHardeningTest extends TestCase
 
     public function test_application_immutable_fields_are_locked_after_submit(): void
     {
-        $fixture = $this->seedBaseFixture();
+        $fixture = $this->seedBaseFixture(readyForSubmit: true);
         $application = $fixture['application'];
         $parent = $fixture['parent'];
 
@@ -97,6 +100,16 @@ class WorkflowHardeningTest extends TestCase
         $payment->transitionStatus('verified', [], auth()->id());
     }
 
+    public function test_application_submit_is_rejected_when_completion_is_not_100_percent(): void
+    {
+        $fixture = $this->seedBaseFixture(readyForSubmit: false);
+        $application = $fixture['application'];
+        $parent = $fixture['parent'];
+
+        $this->expectException(AuthorizationException::class);
+        $application->submit($parent->id);
+    }
+
     /**
      * @return array{
      *     school: School,
@@ -105,7 +118,7 @@ class WorkflowHardeningTest extends TestCase
      *     payment: Payment
      * }
      */
-    private function seedBaseFixture(): array
+    private function seedBaseFixture(bool $readyForSubmit = false): array
     {
         $school = School::create([
             'code' => 'SCH-HARDEN',
@@ -172,6 +185,8 @@ class WorkflowHardeningTest extends TestCase
             'student_last_name' => 'Garcia',
             'birth_date' => '2017-01-15',
             'nationality' => 'Indonesian',
+            'email' => $readyForSubmit ? 'student@example.test' : null,
+            'phone' => $readyForSubmit ? '081234567890' : null,
             'gender' => 'male',
             'current_address' => 'Jl. Test',
             'current_city' => 'Jakarta',
@@ -188,12 +203,59 @@ class WorkflowHardeningTest extends TestCase
             'status' => 'pending',
         ]);
 
+        if ($readyForSubmit) {
+            $this->makeApplicationSubmissionReady($application, $payment);
+        }
+
         return [
             'school' => $school,
             'parent' => $parent,
             'application' => $application,
             'payment' => $payment,
         ];
+    }
+
+    private function makeApplicationSubmissionReady(Application $application, Payment $payment): void
+    {
+        ParentGuardian::create([
+            'application_id' => $application->id,
+            'type' => 'father',
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'relationship' => 'father',
+            'email' => 'father@example.test',
+            'mobile' => '081111111111',
+            'is_primary_contact' => true,
+            'is_emergency_contact' => true,
+        ]);
+
+        ParentGuardian::create([
+            'application_id' => $application->id,
+            'type' => 'mother',
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'relationship' => 'mother',
+            'email' => 'mother@example.test',
+            'mobile' => '082222222222',
+            'is_primary_contact' => false,
+            'is_emergency_contact' => true,
+        ]);
+
+        foreach (Application::REQUIRED_DOCUMENT_TYPES as $index => $type) {
+            Document::create([
+                'application_id' => $application->id,
+                'type' => $type,
+                'name' => "{$type}.pdf",
+                'file_path' => "documents/{$type}-{$index}.pdf",
+                'file_type' => 'application/pdf',
+                'file_size' => 1024,
+                'status' => 'pending',
+            ]);
+        }
+
+        $payment->update([
+            'status' => 'verified',
+        ]);
     }
 
     private function createUserWithRole(string $roleName, int $roleTeamId, int $userSchoolId): User

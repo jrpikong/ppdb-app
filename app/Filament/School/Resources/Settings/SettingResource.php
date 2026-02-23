@@ -7,6 +7,7 @@ namespace App\Filament\School\Resources\Settings;
 use App\Filament\School\Resources\Settings\Schemas\SettingForm;
 use App\Filament\School\Resources\Settings\Tables\SettingsTable;
 use App\Models\Setting;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
@@ -48,7 +49,14 @@ class SettingResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery();
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
+        return parent::getEloquentQuery()
+            ->where('default_school_id', $tenantId);
     }
 
     public static function canViewAny(): bool
@@ -58,7 +66,14 @@ class SettingResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->can('create_setting') && static::getModel()::query()->count() === 0;
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            return false;
+        }
+
+        return auth()->user()->can('create_setting')
+            && static::getModel()::query()->where('default_school_id', $tenantId)->count() === 0;
     }
 
     public static function canEdit(Model $record): bool
@@ -73,6 +88,14 @@ class SettingResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::query()->count();
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            return null;
+        }
+
+        return (string) static::getModel()::query()
+            ->where('default_school_id', $tenantId)
+            ->count();
     }
 }

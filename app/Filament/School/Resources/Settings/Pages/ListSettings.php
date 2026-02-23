@@ -3,6 +3,7 @@
 namespace App\Filament\School\Resources\Settings\Pages;
 
 use App\Filament\School\Resources\Settings\SettingResource;
+use Filament\Facades\Filament;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
@@ -12,7 +13,13 @@ class ListSettings extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        if ($this->getTableQuery()->count() > 0) {
+        $tenantId = Filament::getTenant()?->id;
+
+        if (! $tenantId) {
+            return [];
+        }
+
+        if ($this->getTableQuery()->where('default_school_id', $tenantId)->count() > 0) {
             return [];
         }
 
