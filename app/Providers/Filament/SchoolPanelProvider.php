@@ -83,7 +83,7 @@ class SchoolPanelProvider extends PanelProvider
             ])
             ->authGuard('web')
             ->brandName('VIS School Portal')
-            ->brandLogo(asset('logo/logo.webp'))
+            ->brandLogo(asset('logo/main-logo'))
             ->brandLogoHeight('2rem')
             ->favicon(asset('site-logo-vis-150x150.png'))
             ->sidebarCollapsibleOnDesktop()

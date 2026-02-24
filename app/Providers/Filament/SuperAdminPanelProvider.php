@@ -53,7 +53,7 @@ class SuperAdminPanelProvider extends PanelProvider
                     ->tenantOwnershipRelationshipName('school'),
             ])
             ->brandName('VIS Admin')
-            ->brandLogo(asset('logo/logo.webp')) // Add your logo
+            ->brandLogo(asset('logo/main-logo'))
             ->brandLogoHeight('2rem')
             ->favicon(asset('site-logo-vis-150x150.png'))
             ->discoverResources(in: app_path('Filament/SuperAdmin/Resources'), for: 'App\\Filament\\SuperAdmin\\Resources')
