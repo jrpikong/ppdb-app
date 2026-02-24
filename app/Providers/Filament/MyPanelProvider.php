@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\My\Auth\Login;
 use App\Filament\My\Auth\Register;
 use App\Filament\My\Pages\Dashboard;
 use Filament\Http\Middleware\Authenticate;
@@ -29,7 +30,7 @@ class MyPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Blue,
             ])
-            ->login()
+            ->login(Login::class)
             ->registration(Register::class)
             ->emailVerification()
             ->profile()
@@ -62,7 +63,7 @@ class MyPanelProvider extends PanelProvider
             ])
             ->authGuard('web')
             ->brandName('VIS My Admissions')
-            ->brandLogo(asset('logo/logo.webp'))
+            ->brandLogo(asset('logo/main-logo'))
             ->brandLogoHeight('2rem')
             ->favicon(asset('site-logo-vis-150x150.png'))
             ->sidebarCollapsibleOnDesktop()

@@ -7,7 +7,7 @@ Route::get('/', fn() => redirect('/my/login'));
 Route::get('/guide', fn() => view('welcome'))->name('welcome');
 
 Route::get('/privacy', fn () => view('legal.privacy'))->name('privacy');
-//Route::get('/terms',   fn () => view('legal.terms'))->name('terms');
+Route::get('/terms', fn () => view('legal.terms'))->name('terms');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/secure-files/documents/{document}', [SecureFileController::class, 'document'])
