@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\My\Resources\Applications\Pages\Concerns;
 
 use App\Models\Application;
+use App\Models\Document;
 use Filament\Notifications\Notification;
 use RuntimeException;
 
@@ -13,8 +14,12 @@ trait CanSubmitApplication
     /**
      * @return array<int, string>
      */
-    protected function getRequiredDocumentTypes(): array
+    protected function getRequiredDocumentTypes(?Application $record = null): array
     {
+        if ($record) {
+            return $record->getRequiredDocumentTypes();
+        }
+
         return Application::REQUIRED_DOCUMENT_TYPES;
     }
 
@@ -25,7 +30,7 @@ trait CanSubmitApplication
     {
         $uploaded = $record->documents()->pluck('type')->toArray();
 
-        return array_values(array_diff($this->getRequiredDocumentTypes(), $uploaded));
+        return array_values(array_diff($this->getRequiredDocumentTypes($record), $uploaded));
     }
 
     protected function submitApplication(Application $record): void
@@ -118,11 +123,13 @@ trait CanSubmitApplication
         $missingRequiredDocs = $this->getMissingRequiredDocuments($record);
 
         if ($missingRequiredDocs !== []) {
+            $requiredCount = count($this->getRequiredDocumentTypes($record));
+
             $missingLabels = collect($missingRequiredDocs)
-                ->map(fn (string $type): string => (string) str($type)->replace('_', ' ')->title())
+                ->map(fn (string $type): string => Document::DOCUMENT_TYPES[$type] ?? (string) str($type)->replace('_', ' ')->title())
                 ->implode(', ');
 
-            $errors[] = '- Upload all 9 required documents before submitting.';
+            $errors[] = "- Upload all {$requiredCount} required documents before submitting.";
             $errors[] = "- Missing documents: {$missingLabels}.";
         }
 

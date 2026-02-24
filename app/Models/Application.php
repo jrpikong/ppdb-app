@@ -651,11 +651,49 @@ class Application extends Model
         return true;
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public static function getRequiredDocumentTypesForSchool(?int $schoolId = null): array
+    {
+        if (($schoolId ?? 0) <= 0) {
+            return self::REQUIRED_DOCUMENT_TYPES;
+        }
+
+        $configuredTypes = Setting::query()
+            ->where('default_school_id', $schoolId)
+            ->value('required_documents');
+
+        if (! is_array($configuredTypes)) {
+            return self::REQUIRED_DOCUMENT_TYPES;
+        }
+
+        $validTypes = array_keys(Document::documentTypeOptions());
+
+        $types = array_values(array_unique(array_filter(
+            array_map(
+                static fn (mixed $type): string => is_string($type) ? trim($type) : '',
+                $configuredTypes
+            ),
+            static fn (string $type): bool => $type !== '' && in_array($type, $validTypes, true),
+        )));
+
+        return $types !== [] ? $types : self::REQUIRED_DOCUMENT_TYPES;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getRequiredDocumentTypes(): array
+    {
+        return self::getRequiredDocumentTypesForSchool((int) ($this->school_id ?: 0));
+    }
+
     public function hasAllRequiredDocuments(): bool
     {
         $uploadedTypes = $this->documents()->pluck('type')->toArray();
 
-        foreach (self::REQUIRED_DOCUMENT_TYPES as $type) {
+        foreach ($this->getRequiredDocumentTypes() as $type) {
             if (! in_array($type, $uploadedTypes, true)) {
                 return false;
             }

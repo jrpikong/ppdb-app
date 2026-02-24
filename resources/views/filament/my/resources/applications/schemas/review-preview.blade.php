@@ -162,12 +162,26 @@
         })
         ->values();
 
-    $requiredDocumentTypes = \App\Models\Application::REQUIRED_DOCUMENT_TYPES;
+    $requiredDocumentTypes = \App\Models\Application::getRequiredDocumentTypesForSchool(
+        $schoolId > 0
+            ? $schoolId
+            : (($record?->school_id ?? 0) > 0 ? (int) $record->school_id : null)
+    );
     $uploadedTypes = $documentsState
+        ->filter(static function ($item): bool {
+            if (! is_array($item)) {
+                return false;
+            }
+
+            return filled($item['id'] ?? null) || filled($item['file_path'] ?? null);
+        })
         ->pluck('type')
         ->filter(static fn ($type) => filled($type))
         ->all();
     $requiredUploadedCount = count(array_unique(array_intersect($requiredDocumentTypes, $uploadedTypes)));
+    $uploadedDocumentsCount = $documents
+        ->filter(static fn (array $document): bool => filled($document['link'] ?? null))
+        ->count();
 
     $completion = (int) ($record?->getCompletionPercentage() ?? 0);
 @endphp
@@ -424,8 +438,8 @@
                 <p class="rv-kpi-value">{{ $parentGuardians->count() }}</p>
             </div>
             <div class="rv-kpi">
-                <p class="rv-kpi-label">Documents</p>
-                <p class="rv-kpi-value">{{ $documents->count() }}</p>
+                <p class="rv-kpi-label">Documents Uploaded</p>
+                <p class="rv-kpi-value">{{ $uploadedDocumentsCount }}</p>
             </div>
             <div class="rv-kpi">
                 <p class="rv-kpi-label">Required Docs</p>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\My\Resources\Applications\Schemas;
 
 use App\Models\AdmissionPeriod;
+use App\Models\Application;
 use App\Models\Document;
 use App\Models\Level;
 use App\Models\School;
@@ -42,6 +43,16 @@ class ApplicationForm
             'image/png',
             'image/webp',
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function requiredDocumentTypes(Get $get, ?Application $record = null): array
+    {
+        $schoolId = (int) ($get('school_id') ?: ($record?->school_id ?? 0));
+
+        return Application::getRequiredDocumentTypesForSchool($schoolId > 0 ? $schoolId : null);
     }
 
     public static function configure(Schema $schema): Schema
@@ -357,29 +368,80 @@ class ApplicationForm
                     ->schema([
                         Repeater::make('documents')
                             ->relationship('documents')
-                            ->label('')->defaultItems(0)->collapsible()->cloneable()
+                            ->label('')
+                            ->afterStateHydrated(function (Repeater $component, Get $get, ?Application $record): void {
+                                $rawState = $component->getRawState();
+
+                                if (! is_array($rawState)) {
+                                    $rawState = [];
+                                }
+
+                                $existingTypes = array_values(array_filter(
+                                    array_map(
+                                        static fn (mixed $item): string => is_array($item) && is_string($item['type'] ?? null)
+                                            ? trim((string) $item['type'])
+                                            : '',
+                                        $rawState
+                                    ),
+                                    static fn (string $type): bool => $type !== '',
+                                ));
+
+                                $wasUpdated = false;
+
+                                foreach (self::requiredDocumentTypes($get, $record) as $type) {
+                                    if (in_array($type, $existingTypes, true)) {
+                                        continue;
+                                    }
+
+                                    $rawState['template-' . $type] = [
+                                        'type' => $type,
+                                        'name' => Document::DOCUMENT_TYPES[$type] ?? (string) str($type)->replace('_', ' ')->title(),
+                                        'description' => null,
+                                        'file_path' => null,
+                                        'status' => 'pending',
+                                    ];
+
+                                    $existingTypes[] = $type;
+                                    $wasUpdated = true;
+                                }
+
+                                if ($wasUpdated) {
+                                    $component->rawState($rawState);
+                                }
+                            })
+                            ->collapsible()
+                            ->addActionLabel('Add Optional Document')
                             ->itemLabel(fn (array $state): string =>
                                 Document::DOCUMENT_TYPES[$state['type'] ?? ''] ?? ($state['name'] ?? 'Document')
                             )
                             ->schema([
                                 Grid::make(2)->schema([
-                                    Select::make('type')->label('Document Type')->required()
+                                    Select::make('type')->label('Document Type')->requiredWith('file_path')
                                         ->options(Document::documentTypeOptions())
+                                        ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                         ->searchable()->preload()->native(false),
-                                    TextInput::make('name')->label('File Label / Description')->required()->maxLength(255),
+                                    TextInput::make('name')->label('File Label / Description')->requiredWith('file_path')->maxLength(255),
                                 ]),
                                 FileUpload::make('file_path')
-                                    ->label('Upload File')->required()
+                                    ->label('Upload File')
                                     ->disk('local')->directory('documents')->maxSize(10240)
                                     ->acceptedFileTypes(self::documentMimeTypes())
-                                    ->helperText('Accepted: PDF, JPG / JPEG, PNG, WebP · Max 10 MB')
+                                    ->helperText('Accepted: PDF, JPG / JPEG, PNG, WebP, max 10 MB. Rows without file will not be saved.')
                                     ->columnSpanFull(),
                                 Textarea::make('description')->label('Notes (optional)')->rows(1)->columnSpanFull(),
                                 Hidden::make('status')->default('pending')->dehydrated(false),
                                 Hidden::make('file_type')->dehydrated(false),
                                 Hidden::make('file_size')->dehydrated(false),
                             ])
-                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): ?array {
+                                if (empty($data['file_path'])) {
+                                    return null;
+                                }
+
+                                if (empty($data['name']) && filled($data['type'] ?? null)) {
+                                    $data['name'] = Document::DOCUMENT_TYPES[$data['type']] ?? (string) str($data['type'])->replace('_', ' ')->title();
+                                }
+
                                 $data['status'] = 'pending';
                                 $data['file_type'] = 'application/octet-stream';
                                 $data['file_size'] = 0;
@@ -407,7 +469,15 @@ class ApplicationForm
 
                                 return $data;
                             })
-                            ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                            ->mutateRelationshipDataBeforeSaveUsing(function (array $data): ?array {
+                                if (empty($data['file_path'])) {
+                                    return null;
+                                }
+
+                                if (empty($data['name']) && filled($data['type'] ?? null)) {
+                                    $data['name'] = Document::DOCUMENT_TYPES[$data['type']] ?? (string) str($data['type'])->replace('_', ' ')->title();
+                                }
+
                                 $data['status'] = 'pending';
                                 unset($data['verified_by'], $data['verified_at'], $data['verification_notes'], $data['rejection_reason']);
 
@@ -492,3 +562,4 @@ class ApplicationForm
         ]);
     }
 }
+

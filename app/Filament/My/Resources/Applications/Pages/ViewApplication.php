@@ -77,9 +77,9 @@ class ViewApplication extends ViewRecord
     /**
      * @return array<int, string>
      */
-    public function getRequiredDocumentTypes(): array
+    public function getRequiredDocumentTypes(?Application $record = null): array
     {
-        return Application::REQUIRED_DOCUMENT_TYPES;
+        return ($record ?? $this->getRecordForView())->getRequiredDocumentTypes();
     }
 
     /**
