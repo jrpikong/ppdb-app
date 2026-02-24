@@ -26,6 +26,12 @@
 
         <div class="flex w-full lg:w-1/2 flex-col justify-center items-center bg-white px-6 py-12 lg:px-20 xl:px-32">
             <div class="w-full max-w-md space-y-8">
+                @php
+                    $socialiteEnabled = (bool) config('filament-socialite.my_panel.enabled')
+                        && filled(config('services.google.client_id'))
+                        && filled(config('services.google.client_secret'));
+                @endphp
+
                 <div class="flex flex-col items-center text-center">
                     <img
                         src="{{ asset('/logo/main-logo') }}"
@@ -127,6 +133,10 @@
                         </button>
                     </div>
                 </form>
+
+                @if ($socialiteEnabled)
+                    <x-filament-socialite::buttons />
+                @endif
 
                 @if (filament()->hasRegistration())
                     <div class="relative">
