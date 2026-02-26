@@ -272,11 +272,6 @@ class PolicyAuthorizationTest extends TestCase
 
     private function makeApplicationSubmissionReady(Application $application, Payment $verifiedPayment): void
     {
-        $application->update([
-            'email' => 'student.policy@example.test',
-            'phone' => '081234567890',
-        ]);
-
         ParentGuardian::create([
             'application_id' => $application->id,
             'type' => 'father',

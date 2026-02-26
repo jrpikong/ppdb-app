@@ -3,7 +3,6 @@
     /** @var \App\Models\Application|null $record */
 
     $dash = static fn ($value): string => filled($value) ? (string) $value : '-';
-    $yesNo = static fn ($value): string => $value ? 'Yes' : 'No';
 
     $formatDate = static function ($value, string $format = 'd M Y'): string {
         if (blank($value)) {
@@ -15,26 +14,6 @@
         } catch (\Throwable) {
             return (string) $value;
         }
-    };
-
-    $formatBytes = static function (int $bytes): string {
-        if ($bytes <= 0) {
-            return '-';
-        }
-
-        if ($bytes >= 1024 * 1024 * 1024) {
-            return number_format($bytes / (1024 * 1024 * 1024), 2).' GB';
-        }
-
-        if ($bytes >= 1024 * 1024) {
-            return number_format($bytes / (1024 * 1024), 2).' MB';
-        }
-
-        if ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2).' KB';
-        }
-
-        return $bytes.' bytes';
     };
 
     $typeLabelMap = [
@@ -54,13 +33,6 @@
         'passport' => 'Passport',
         'kitas' => 'KITAS',
         'other' => 'Other',
-    ];
-
-    $documentStatusUi = [
-        'pending' => ['label' => 'Pending', 'bg' => '#fff7ed', 'text' => '#9a3412', 'border' => '#fed7aa'],
-        'approved' => ['label' => 'Approved', 'bg' => '#ecfdf5', 'text' => '#065f46', 'border' => '#a7f3d0'],
-        'rejected' => ['label' => 'Rejected', 'bg' => '#fef2f2', 'text' => '#b91c1c', 'border' => '#fecaca'],
-        'resubmit' => ['label' => 'Need Resubmit', 'bg' => '#fff7ed', 'text' => '#c2410c', 'border' => '#fed7aa'],
     ];
 
     $schoolId = (int) ($get('school_id') ?: 0);
@@ -96,92 +68,6 @@
     ]));
 
     $parentGuardians = collect($get('parentGuardians') ?? []);
-    $medical = (array) ($get('medicalRecord') ?? []);
-
-    $recordDocumentsById = collect($record?->documents ?? [])->keyBy(fn ($doc) => (int) $doc->id);
-    $documentTypeLabels = \App\Models\Document::documentTypeOptions();
-
-    $documentsState = collect($get('documents') ?? []);
-    if ($documentsState->isEmpty() && $record) {
-        $documentsState = collect($record->documents)->map(function ($doc): array {
-            return [
-                'id' => $doc->id,
-                'type' => $doc->type,
-                'name' => $doc->name,
-                'file_path' => $doc->file_path,
-                'file_type' => $doc->file_type,
-                'file_size' => $doc->file_size,
-                'description' => $doc->description,
-                'status' => $doc->status,
-            ];
-        });
-    }
-
-    $documents = $documentsState
-        ->map(function ($item) use ($recordDocumentsById, $documentTypeLabels, $documentStatusUi, $formatBytes) {
-            $item = is_array($item) ? $item : [];
-
-            $id = isset($item['id']) && is_numeric($item['id']) ? (int) $item['id'] : null;
-            $recordDoc = $id ? $recordDocumentsById->get($id) : null;
-
-            if (! $recordDoc && filled($item['file_path'])) {
-                $recordDoc = $recordDocumentsById->first(
-                    fn ($doc) => $doc->file_path === $item['file_path']
-                );
-                $id = $recordDoc?->id;
-            }
-
-            $type = $item['type'] ?? $recordDoc?->type;
-            $status = $item['status'] ?? $recordDoc?->status ?? 'pending';
-            $fileType = $item['file_type'] ?? $recordDoc?->file_type;
-            $filePath = $item['file_path'] ?? $recordDoc?->file_path;
-            $size = (int) ($item['file_size'] ?? $recordDoc?->file_size ?? 0);
-            $name = $item['name'] ?? $recordDoc?->name ?? (filled($filePath) ? basename((string) $filePath) : 'Document');
-
-            $isImage = is_string($fileType) && \Illuminate\Support\Str::startsWith($fileType, 'image/');
-            if (! $isImage && filled($filePath)) {
-                $extension = strtolower(pathinfo((string) $filePath, PATHINFO_EXTENSION));
-                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
-            }
-
-            $statusUi = $documentStatusUi[$status] ?? ['label' => ucfirst((string) $status), 'bg' => '#f8fafc', 'text' => '#334155', 'border' => '#cbd5e1'];
-
-            return [
-                'id' => $id,
-                'type_label' => $documentTypeLabels[$type ?? ''] ?? ($type ?: 'Document'),
-                'name' => $name,
-                'description' => $item['description'] ?? $recordDoc?->description,
-                'status_label' => $statusUi['label'],
-                'status_bg' => $statusUi['bg'],
-                'status_text' => $statusUi['text'],
-                'status_border' => $statusUi['border'],
-                'is_image' => $isImage,
-                'size_label' => $formatBytes($size),
-                'link' => $id ? route('secure-files.documents.download', ['document' => $id]) : null,
-            ];
-        })
-        ->values();
-
-    $requiredDocumentTypes = \App\Models\Application::getRequiredDocumentTypesForSchool(
-        $schoolId > 0
-            ? $schoolId
-            : (($record?->school_id ?? 0) > 0 ? (int) $record->school_id : null)
-    );
-    $uploadedTypes = $documentsState
-        ->filter(static function ($item): bool {
-            if (! is_array($item)) {
-                return false;
-            }
-
-            return filled($item['id'] ?? null) || filled($item['file_path'] ?? null);
-        })
-        ->pluck('type')
-        ->filter(static fn ($type) => filled($type))
-        ->all();
-    $requiredUploadedCount = count(array_unique(array_intersect($requiredDocumentTypes, $uploadedTypes)));
-    $uploadedDocumentsCount = $documents
-        ->filter(static fn (array $document): bool => filled($document['link'] ?? null))
-        ->count();
 
     $completion = (int) ($record?->getCompletionPercentage() ?? 0);
 @endphp
@@ -437,14 +323,6 @@
                 <p class="rv-kpi-label">Parent/Guardian</p>
                 <p class="rv-kpi-value">{{ $parentGuardians->count() }}</p>
             </div>
-            <div class="rv-kpi">
-                <p class="rv-kpi-label">Documents Uploaded</p>
-                <p class="rv-kpi-value">{{ $uploadedDocumentsCount }}</p>
-            </div>
-            <div class="rv-kpi">
-                <p class="rv-kpi-label">Required Docs</p>
-                <p class="rv-kpi-value">{{ $requiredUploadedCount }}/{{ count($requiredDocumentTypes) }}</p>
-            </div>
         </div>
     </section>
 
@@ -501,14 +379,6 @@
                 <p class="rv-field-label">Passport / NIK</p>
                 <p class="rv-field-value">{{ $dash($get('passport_number')) }}</p>
             </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Student Email</p>
-                <p class="rv-field-value">{{ $dash($get('email')) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Student Phone</p>
-                <p class="rv-field-value">{{ $dash($get('phone')) }}</p>
-            </div>
         </div>
     </section>
 
@@ -532,14 +402,6 @@
             <div class="rv-field">
                 <p class="rv-field-label">Current Grade Level</p>
                 <p class="rv-field-value">{{ $dash($get('current_grade_level')) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Previous School Start</p>
-                <p class="rv-field-value">{{ $formatDate($get('previous_school_start_date'), 'M Y') }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Previous School End</p>
-                <p class="rv-field-value">{{ $formatDate($get('previous_school_end_date'), 'M Y') }}</p>
             </div>
             <div class="rv-field">
                 <p class="rv-field-label">Languages Spoken</p>
@@ -603,128 +465,4 @@
         </div>
     </section>
 
-    <section class="rv-card">
-        <h3 class="rv-title">Medical Information</h3>
-        <p class="rv-sub">Health profile and emergency contact details.</p>
-
-        <div class="rv-grid-3" style="margin-top: 10px;">
-            <div class="rv-field">
-                <p class="rv-field-label">Blood Type</p>
-                <p class="rv-field-value">{{ $dash($medical['blood_type'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Height</p>
-                <p class="rv-field-value">{{ filled($medical['height'] ?? null) ? $medical['height'].' cm' : '-' }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Weight</p>
-                <p class="rv-field-value">{{ filled($medical['weight'] ?? null) ? $medical['weight'].' kg' : '-' }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Food Allergies</p>
-                <p class="rv-field-value">{{ $yesNo($medical['has_food_allergies'] ?? false) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Medical Conditions</p>
-                <p class="rv-field-value">{{ $yesNo($medical['has_medical_conditions'] ?? false) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Daily Medication</p>
-                <p class="rv-field-value">{{ $yesNo($medical['requires_daily_medication'] ?? false) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Dietary Restrictions</p>
-                <p class="rv-field-value">{{ $yesNo($medical['has_dietary_restrictions'] ?? false) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Special Needs</p>
-                <p class="rv-field-value">{{ $yesNo($medical['has_special_needs'] ?? false) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Immunization Up To Date</p>
-                <p class="rv-field-value">{{ $yesNo($medical['immunizations_up_to_date'] ?? false) }}</p>
-            </div>
-        </div>
-
-        <div class="rv-grid-2" style="margin-top: 10px;">
-            <div class="rv-field">
-                <p class="rv-field-label">Food Allergy Details</p>
-                <p class="rv-field-value">{{ $dash($medical['food_allergies_details'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Medical Condition Details</p>
-                <p class="rv-field-value">{{ $dash($medical['medical_conditions'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Daily Medication Details</p>
-                <p class="rv-field-value">{{ $dash($medical['daily_medications'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Dietary Details</p>
-                <p class="rv-field-value">{{ $dash($medical['dietary_restrictions'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Special Needs Details</p>
-                <p class="rv-field-value">{{ $dash($medical['special_needs_description'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Additional Medical Notes</p>
-                <p class="rv-field-value">{{ $dash($medical['additional_notes'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Emergency Contact</p>
-                <p class="rv-field-value">{{ $dash($medical['emergency_contact_name'] ?? null) }}</p>
-                <p class="rv-sub" style="margin-top: 3px;">{{ $dash($medical['emergency_contact_phone'] ?? null) }} / {{ $dash($medical['emergency_contact_relationship'] ?? null) }}</p>
-            </div>
-            <div class="rv-field">
-                <p class="rv-field-label">Doctor / Hospital</p>
-                <p class="rv-field-value">{{ $dash($medical['doctor_name'] ?? null) }}</p>
-                <p class="rv-sub" style="margin-top: 3px;">{{ $dash($medical['doctor_phone'] ?? null) }} / {{ $dash($medical['hospital_preference'] ?? null) }}</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="rv-card">
-        <h3 class="rv-title">Uploaded Documents</h3>
-        <p class="rv-sub">Image documents show inline preview. PDF and other files provide open/download actions.</p>
-
-        <div class="rv-doc-grid">
-            @forelse ($documents as $document)
-                <article class="rv-doc-card">
-                    <div class="rv-doc-head">
-                        <p class="rv-doc-title">{{ $document['type_label'] }}</p>
-                        <p class="rv-doc-meta">
-                            {{ $document['name'] }} | {{ $document['size_label'] }}
-                            <span class="rv-pill" style="margin-left: 6px; background: {{ $document['status_bg'] }}; color: {{ $document['status_text'] }}; border-color: {{ $document['status_border'] }};">
-                                {{ $document['status_label'] }}
-                            </span>
-                        </p>
-                    </div>
-
-                    <div class="rv-doc-body">
-                        @if ($document['is_image'] && $document['link'])
-                            <img src="{{ $document['link'] }}" alt="{{ $document['name'] }}" class="rv-doc-image">
-                        @else
-                            <div class="rv-doc-file">
-                                {{ $document['description'] ?: 'Document preview is not available for this file type.' }}
-                            </div>
-                        @endif
-
-                        <div class="rv-doc-actions">
-                            @if ($document['link'])
-                                <a href="{{ $document['link'] }}" target="_blank" rel="noopener noreferrer" class="rv-btn rv-btn-primary">Open File</a>
-                                <a href="{{ $document['link'] }}" download class="rv-btn rv-btn-secondary">Download</a>
-                            @else
-                                <span class="rv-sub">File link available after save.</span>
-                            @endif
-                        </div>
-                    </div>
-                </article>
-            @empty
-                <div class="rv-field">
-                    <p class="rv-field-value">No documents uploaded.</p>
-                </div>
-            @endforelse
-        </div>
-    </section>
 </div>

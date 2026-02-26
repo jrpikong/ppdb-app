@@ -163,26 +163,12 @@ class ApplicationForm
 
                         TextInput::make('nationality')
                             ->label('Nationality')
-                            ->required()
-                            ->default('Indonesian')
                             ->maxLength(100)
                             ->columnSpan(1),
 
                         TextInput::make('passport_number')
                             ->label('Passport Number')
                             ->maxLength(50)
-                            ->columnSpan(1),
-
-                        TextInput::make('email')
-                            ->label('Student Email')
-                            ->email()
-                            ->maxLength(255)
-                            ->columnSpan(1),
-
-                        TextInput::make('phone')
-                            ->label('Student Phone')
-                            ->tel()
-                            ->maxLength(20)
                             ->columnSpan(1),
 
                         Textarea::make('languages_spoken')
@@ -239,18 +225,6 @@ class ApplicationForm
                         TextInput::make('current_grade_level')
                             ->label('Current Grade/Level')
                             ->maxLength(50)
-                            ->columnSpan(1),
-
-                        DatePicker::make('previous_school_start_date')
-                            ->label('Start Date')
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
-                            ->columnSpan(1),
-
-                        DatePicker::make('previous_school_end_date')
-                            ->label('End Date')
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
                             ->columnSpan(1),
                     ])
                     ->columns(2)

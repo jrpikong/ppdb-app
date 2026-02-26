@@ -142,6 +142,7 @@ class ApplicationForm
                 Step::make('Admission Setup')
                     ->icon('heroicon-o-building-library')
                     ->description('School, period and level selection')
+                    ->visible(fn (?Application $record): bool => ($record?->status ?? 'draft') === 'draft')
                     ->columns(2)
                     ->schema([
                         Select::make('school_id')
@@ -201,6 +202,7 @@ class ApplicationForm
                 Step::make('Student Biodata')
                     ->icon('heroicon-o-user')
                     ->description('Personal information of the student')
+                    ->visible(fn (?Application $record): bool => ($record?->status ?? 'draft') === 'draft')
                     ->columns(2)
                     ->schema([
                         Section::make('Full Name')->columns(3)->columnSpanFull()->schema([
@@ -224,20 +226,17 @@ class ApplicationForm
                         TextInput::make('birth_place')->label('Place of Birth')->maxLength(100),
 
                         TextInput::make('nationality')
-                            ->label('Nationality')->required()->default('Indonesian')->maxLength(100),
+                            ->label('Nationality')->maxLength(100),
 
                         TextInput::make('passport_number')->label('Passport / NIK Number')->maxLength(50),
 
-                        Section::make('Student Contact (Optional)')->columns(2)->collapsed()->columnSpanFull()->schema([
-                            TextInput::make('email')->label('Student Email')->email()->maxLength(255),
-                            TextInput::make('phone')->label('Student Phone')->tel()->maxLength(20),
-                        ]),
                     ]),
 
                 // ─── Step 3: Address & Previous School ─────────────────
                 Step::make('Address & Previous School')
                     ->icon('heroicon-o-map-pin')
                     ->description('Home address and current school information')
+                    ->visible(fn (?Application $record): bool => ($record?->status ?? 'draft') === 'draft')
                     ->columns(2)
                     ->schema([
                         Section::make('Current Address')->columns(2)->columnSpanFull()->schema([
@@ -251,8 +250,6 @@ class ApplicationForm
                             TextInput::make('previous_school_name')->label('School Name')->maxLength(255)->columnSpanFull(),
                             TextInput::make('previous_school_country')->label('Country')->maxLength(100),
                             TextInput::make('current_grade_level')->label('Current Grade Level')->maxLength(50),
-                            DatePicker::make('previous_school_start_date')->label('Start Date')->native(false)->displayFormat('M Y'),
-                            DatePicker::make('previous_school_end_date')->label('End Date')->native(false)->displayFormat('M Y'),
                         ]),
 
                         Section::make('Additional Information')->collapsed()->columnSpanFull()->schema([
@@ -266,6 +263,7 @@ class ApplicationForm
                 Step::make('Parent / Guardian')
                     ->icon('heroicon-o-user-group')
                     ->description('At least one parent or guardian contact is required')
+                    ->visible(fn (?Application $record): bool => ($record?->status ?? 'draft') === 'draft')
                     ->schema([
                         Repeater::make('parentGuardians')
                             ->relationship('parentGuardians')
@@ -316,7 +314,8 @@ class ApplicationForm
                 // ─── Step 5: Medical Information ────────────────────────
                 Step::make('Medical Information')
                     ->icon('heroicon-o-heart')
-                    ->description('Health details to help the school support your child')
+                    ->description('Available after acceptance to support enrollment readiness')
+                    ->visible(fn (?Application $record): bool => in_array((string) ($record?->status ?? ''), ['accepted', 'enrolled'], true))
                     ->columns(2)
                     ->schema([
                         Section::make('Physical Data')->columns(3)->columnSpanFull()->schema([
@@ -364,7 +363,8 @@ class ApplicationForm
                 // ─── Step 6: Documents ──────────────────────────────────
                 Step::make('Documents')
                     ->icon('heroicon-o-paper-clip')
-                    ->description('Upload required supporting documents (PDF or image, max 10 MB each)')
+                    ->description('Upload supporting documents after acceptance (PDF or image, max 10 MB each)')
+                    ->visible(fn (?Application $record): bool => in_array((string) ($record?->status ?? ''), ['accepted', 'enrolled'], true))
                     ->schema([
                         Repeater::make('documents')
                             ->relationship('documents')
@@ -453,7 +453,7 @@ class ApplicationForm
                                             $data['file_type'] = Storage::disk('local')->mimeType($data['file_path']) ?: 'application/octet-stream';
                                             $data['file_size'] = Storage::disk('local')->size($data['file_path']) ?: 0;
                                         } catch (\Throwable) {
-                                            // biarkan default values di atas
+                                            // keep fallback defaults above
                                         }
                                     }
                                     // Legacy public disk fallback
@@ -462,7 +462,7 @@ class ApplicationForm
                                             $data['file_type'] = Storage::disk('public')->mimeType($data['file_path']) ?: 'application/octet-stream';
                                             $data['file_size'] = Storage::disk('public')->size($data['file_path']) ?: 0;
                                         } catch (\Throwable) {
-                                            // biarkan default
+                                            // keep fallback defaults
                                         }
                                     }
                                 }
@@ -487,14 +487,14 @@ class ApplicationForm
                                             $data['file_type'] = Storage::disk('local')->mimeType($data['file_path']) ?: ($data['file_type'] ?? 'application/octet-stream');
                                             $data['file_size'] = Storage::disk('local')->size($data['file_path']) ?: ($data['file_size'] ?? 0);
                                         } catch (\Throwable) {
-                                            // pertahankan nilai lama
+                                            // keep existing values
                                         }
                                     } elseif (Storage::disk('public')->exists($data['file_path'])) {
                                         try {
                                             $data['file_type'] = Storage::disk('public')->mimeType($data['file_path']) ?: ($data['file_type'] ?? 'application/octet-stream');
                                             $data['file_size'] = Storage::disk('public')->size($data['file_path']) ?: ($data['file_size'] ?? 0);
                                         } catch (\Throwable) {
-                                            // pertahankan nilai lama
+                                            // keep existing values
                                         }
                                     }
                                 }
@@ -513,7 +513,7 @@ class ApplicationForm
                             ->schema([
                                 Text::make(new HtmlString(
                                     '<span class="font-medium">Review all submitted data carefully.</span> ' .
-                                    'Use this preview to confirm student details, parent contacts, medical information, and documents ' .
+                                    'Use this preview to confirm student details and parent contacts ' .
                                     'before sending the application to the school.'
                                 ))->color('neutral'),
                             ])->secondary()->compact(),
@@ -553,7 +553,7 @@ class ApplicationForm
 
                             Notification::make()
                                 ->title('Progress saved')
-                                ->body('Your cheanges have been saved automatically.')
+                                ->body('Your changes have been saved automatically.')
                                 ->success()
                                 ->duration(2000)
                                 ->send();

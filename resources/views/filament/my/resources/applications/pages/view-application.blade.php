@@ -2,12 +2,15 @@
     /** @var \App\Filament\My\Resources\Applications\Pages\ViewApplication $this */
     $record = $this->getRecordForView();
     $statusUi = $this->getStatusBadgeUi((string) $record->status);
-    $requiredDocStats = $this->getRequiredDocumentStats();
+    $uploadedDocumentsCount = $record->documents->count();
     $readinessErrors = $this->getReadinessErrors();
     $timeline = $this->getStatusTimeline();
+    $showPostAcceptanceProgress = $this->shouldShowPostAcceptanceProgress();
+    $postAcceptanceProgress = $showPostAcceptanceProgress ? $this->getPostAcceptanceProgress() : null;
 
     $completion = (int) $record->getCompletionPercentage();
     $isDraft = $record->status === 'draft';
+    $isAcceptedOrEnrolled = in_array($record->status, ['accepted', 'enrolled'], true);
     $isTerminal = in_array($record->status, ['rejected', 'enrolled', 'withdrawn'], true);
 
     $editUrl = \App\Filament\My\Resources\Applications\ApplicationResource::getUrl('edit', ['record' => $record], panel: 'my');
@@ -283,6 +286,133 @@
             font-weight: 700;
         }
 
+        .av-readiness-shell {
+            border: 1px solid #bae6fd;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #ecfeff 0%, #f8fafc 100%);
+            padding: 12px;
+        }
+
+        .av-readiness-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .av-readiness-score {
+            border: 1px solid #93c5fd;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #1d4ed8;
+            background: #eff6ff;
+        }
+
+        .av-readiness-grid {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .av-progress-card {
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 11px;
+        }
+
+        .av-progress-label {
+            margin: 0;
+            font-size: 12px;
+            color: #0f172a;
+            font-weight: 800;
+        }
+
+        .av-progress-meta {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        .av-progress-track {
+            margin-top: 8px;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .av-progress-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #0284c7 0%, #0f766e 100%);
+        }
+
+        .av-chip-ok,
+        .av-chip-warn {
+            display: inline-block;
+            margin-top: 8px;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .av-chip-ok {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+
+        .av-chip-warn {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #9a3412;
+        }
+
+        .av-missing-list {
+            margin: 8px 0 0;
+            padding-left: 18px;
+            color: #334155;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .av-cta-row {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .av-btn-main,
+        .av-btn-soft {
+            display: inline-block;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 800;
+            border: 1px solid transparent;
+        }
+
+        .av-btn-main {
+            background: #0f766e;
+            border-color: #0f766e;
+            color: #ffffff;
+        }
+
+        .av-btn-soft {
+            background: #ffffff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
         .av-table-wrap {
             margin-top: 10px;
             border: 1px solid #dbe4f0;
@@ -381,7 +511,8 @@
 
         @media (max-width: 820px) {
             .av-grid-2,
-            .av-grid-3 {
+            .av-grid-3,
+            .av-readiness-grid {
                 grid-template-columns: 1fr;
             }
             .av-card {
@@ -409,8 +540,8 @@
                         <p class="av-kpi-value">{{ $completion }}%</p>
                     </div>
                     <div class="av-kpi">
-                        <p class="av-kpi-label">Required Docs</p>
-                        <p class="av-kpi-value">{{ $requiredDocStats['uploaded'] }}/{{ $requiredDocStats['required'] }}</p>
+                        <p class="av-kpi-label">Uploaded Docs</p>
+                        <p class="av-kpi-value">{{ $uploadedDocumentsCount }}</p>
                     </div>
                     <div class="av-kpi">
                         <p class="av-kpi-label">Created</p>
@@ -419,8 +550,11 @@
                 </div>
 
                 <div class="av-links">
-                    @if ($isDraft)
+                    @if ($isDraft || $isAcceptedOrEnrolled)
                         <a href="{{ $editUrl }}" class="av-link">Edit Application</a>
+                    @endif
+                    @if ($showPostAcceptanceProgress)
+                        <a href="#enrollment-readiness" class="av-link">Enrollment Readiness</a>
                     @endif
                     <a href="{{ $listUrl }}" class="av-link">Back to Applications</a>
                     <a href="{{ $paymentsUrl }}" class="av-link">Open My Payments</a>
@@ -429,6 +563,71 @@
             </aside>
 
             <div class="av-main">
+                @if ($showPostAcceptanceProgress && $postAcceptanceProgress)
+                    <section class="av-card av-anchor" id="enrollment-readiness">
+                        <div class="av-readiness-shell">
+                            <div class="av-readiness-head">
+                                <div>
+                                    <h3 class="av-title" style="font-size: 20px;">Enrollment Readiness</h3>
+                                    <p class="av-sub">
+                                        Once accepted, complete medical data and supporting documents to speed up enrollment processing.
+                                    </p>
+                                </div>
+                                <span class="av-readiness-score">{{ $postAcceptanceProgress['overall_percentage'] }}% Ready</span>
+                            </div>
+
+                            <div class="av-readiness-grid">
+                                <article class="av-progress-card">
+                                    <p class="av-progress-label">Medical Information</p>
+                                    <p class="av-progress-meta">
+                                        {{ $postAcceptanceProgress['medical']['completed'] }}/{{ $postAcceptanceProgress['medical']['required'] }} data wajib terisi
+                                    </p>
+                                    <div class="av-progress-track">
+                                        <div class="av-progress-fill" style="width: {{ $postAcceptanceProgress['medical']['percentage'] }}%;"></div>
+                                    </div>
+
+                                    @if ($postAcceptanceProgress['medical']['is_complete'])
+                                        <span class="av-chip-ok">Medical Complete</span>
+                                    @else
+                                        <span class="av-chip-warn">Medical Incomplete</span>
+                                        <ul class="av-missing-list">
+                                            @foreach (array_slice($postAcceptanceProgress['medical']['missing'], 0, 3) as $missingField)
+                                                <li>{{ $missingField }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </article>
+
+                                <article class="av-progress-card">
+                                    <p class="av-progress-label">Documents</p>
+                                    <p class="av-progress-meta">
+                                        {{ $postAcceptanceProgress['documents']['uploaded'] }}/{{ $postAcceptanceProgress['documents']['required'] }} required documents uploaded
+                                    </p>
+                                    <div class="av-progress-track">
+                                        <div class="av-progress-fill" style="width: {{ $postAcceptanceProgress['documents']['percentage'] }}%;"></div>
+                                    </div>
+
+                                    @if ($postAcceptanceProgress['documents']['is_complete'])
+                                        <span class="av-chip-ok">Documents Complete</span>
+                                    @else
+                                        <span class="av-chip-warn">Documents Incomplete</span>
+                                        <ul class="av-missing-list">
+                                            @foreach (array_slice($postAcceptanceProgress['documents']['missing'], 0, 3) as $missingDocument)
+                                                <li>{{ $missingDocument }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </article>
+                            </div>
+
+                            <div class="av-cta-row">
+                                <a href="{{ $editUrl }}" class="av-btn-main">{{ $postAcceptanceProgress['next_action_label'] }}</a>
+                                <a href="#documents" class="av-btn-soft">Lihat Dokumen Saat Ini</a>
+                            </div>
+                        </div>
+                    </section>
+                @endif
+
                 <section class="av-card av-anchor" id="overview">
                     <div class="av-hero">
                         <p class="av-hero-mini">My Application Detail</p>
@@ -459,7 +658,7 @@
                     <div class="av-grid-2">
                         <div class="av-box">
                             <p class="av-box-title">Submitted At</p>
-                            <p class="av-box-value">{{ $record->submitted_at?->format('d M Y H:i') ?? 'Belum disubmit' }}</p>
+                            <p class="av-box-value">{{ $record->submitted_at?->format('d M Y H:i') ?? 'Not submitted yet' }}</p>
                         </div>
                         <div class="av-box">
                             <p class="av-box-title">Status Note</p>
@@ -470,7 +669,7 @@
                     @if ($isDraft)
                         @if (count($readinessErrors) > 0)
                             <div class="av-warning">
-                                Application belum siap submit. Lengkapi hal berikut:
+                                The application is not ready for submission yet. Please complete the following:
                                 <ul class="av-list">
                                     @foreach ($readinessErrors as $error)
                                         <li>{{ ltrim($error, '- ') }}</li>
@@ -478,16 +677,23 @@
                                 </ul>
                             </div>
                         @else
-                            <div class="av-good">Application ini sudah memenuhi syarat validasi submit.</div>
+                            <div class="av-good">This application has met all submission validation requirements.</div>
                         @endif
                     @else
-                        <div class="av-good">Application sudah masuk proses sekolah (read-only untuk data utama).</div>
+                        <div class="av-good">
+                            This application is already in the school process.
+                            @if ($isAcceptedOrEnrolled)
+                                You can still complete Medical Information and Documents from the edit page.
+                            @else
+                                Core application data is read-only.
+                            @endif
+                        </div>
                     @endif
                 </section>
 
                 <section class="av-card av-anchor" id="student">
                     <h3 class="av-title">Student Information</h3>
-                    <p class="av-sub">Ringkasan biodata siswa yang dikirim pada aplikasi ini.</p>
+                    <p class="av-sub">Summary of student biodata submitted in this application.</p>
                     <div class="av-grid-3">
                         <div class="av-box">
                             <p class="av-box-title">Full Name</p>
@@ -517,20 +723,12 @@
                             <p class="av-box-title">Passport/NIK</p>
                             <p class="av-box-value">{{ $record->passport_number ?: '-' }}</p>
                         </div>
-                        <div class="av-box">
-                            <p class="av-box-title">Student Email</p>
-                            <p class="av-box-value">{{ $record->email ?: '-' }}</p>
-                        </div>
-                        <div class="av-box">
-                            <p class="av-box-title">Student Phone</p>
-                            <p class="av-box-value">{{ $record->phone ?: '-' }}</p>
-                        </div>
                     </div>
                 </section>
 
                 <section class="av-card av-anchor" id="address-parent">
                     <h3 class="av-title">Address & Parent Contacts</h3>
-                    <p class="av-sub">Alamat domisili dan kontak parent/wali pada aplikasi.</p>
+                    <p class="av-sub">Residential address and parent/guardian contacts in this application.</p>
 
                     <div class="av-grid-2">
                         <div class="av-box">
@@ -563,7 +761,7 @@
                             </div>
                         @empty
                             <div class="av-box">
-                                <p class="av-box-value">Belum ada data parent/wali.</p>
+                                <p class="av-box-value">No parent/guardian data yet.</p>
                             </div>
                         @endforelse
                     </div>
@@ -571,7 +769,7 @@
 
                 <section class="av-card av-anchor" id="medical">
                     <h3 class="av-title">Medical Information</h3>
-                    <p class="av-sub">Kondisi kesehatan siswa yang sudah diisi pada form.</p>
+                    <p class="av-sub">Student health details completed in the form.</p>
                     @if ($record->medicalRecord)
                         @php $med = $record->medicalRecord; @endphp
                         <div class="av-grid-3">
@@ -613,14 +811,14 @@
                         </div>
                     @else
                         <div class="av-box" style="margin-top: 10px;">
-                            <p class="av-box-value">Belum ada data medical record.</p>
+                            <p class="av-box-value">No medical record data yet.</p>
                         </div>
                     @endif
                 </section>
 
                 <section class="av-card av-anchor" id="documents">
                     <h3 class="av-title">Uploaded Documents</h3>
-                    <p class="av-sub">Dokumen yang telah di-upload beserta status verifikasinya.</p>
+                    <p class="av-sub">Uploaded documents and their verification status.</p>
                     <div class="av-table-wrap">
                         <table class="av-table">
                             <thead>
@@ -662,7 +860,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4">Belum ada dokumen.</td>
+                                    <td colspan="4">No documents uploaded yet.</td>
                                 </tr>
                             @endforelse
                             </tbody>
@@ -672,7 +870,7 @@
 
                 <section class="av-card av-anchor" id="payments">
                     <h3 class="av-title">Payments</h3>
-                    <p class="av-sub">Riwayat pembayaran yang terkait dengan aplikasi ini.</p>
+                    <p class="av-sub">Payment history related to this application.</p>
                     <div class="av-table-wrap">
                         <table class="av-table">
                             <thead>
@@ -714,7 +912,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5">Belum ada payment record.</td>
+                                    <td colspan="5">No payment records yet.</td>
                                 </tr>
                             @endforelse
                             </tbody>
@@ -724,7 +922,7 @@
 
                 <section class="av-card av-anchor" id="schedules">
                     <h3 class="av-title">Schedules</h3>
-                    <p class="av-sub">Jadwal interview/test/observation yang pernah dibuat untuk aplikasi ini.</p>
+                    <p class="av-sub">Interview/test/observation schedules created for this application.</p>
                     <div class="av-table-wrap">
                         <table class="av-table">
                             <thead>
@@ -767,7 +965,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5">Belum ada jadwal.</td>
+                                    <td colspan="5">No schedules yet.</td>
                                 </tr>
                             @endforelse
                             </tbody>
@@ -777,7 +975,7 @@
 
                 <section class="av-card av-anchor" id="enrollment">
                     <h3 class="av-title">Enrollment</h3>
-                    <p class="av-sub">Informasi enrollment muncul setelah aplikasi diterima dan diproses sekolah.</p>
+                    <p class="av-sub">Enrollment details appear after the application is accepted and processed by the school.</p>
                     @if ($record->enrollment)
                         @php $enrollment = $record->enrollment; @endphp
                         <div class="av-grid-3">
@@ -808,14 +1006,14 @@
                         </div>
                     @else
                         <div class="av-box" style="margin-top: 10px;">
-                            <p class="av-box-value">Enrollment belum tersedia untuk aplikasi ini.</p>
+                            <p class="av-box-value">Enrollment is not available for this application yet.</p>
                         </div>
                     @endif
                 </section>
 
                 <section class="av-card av-anchor" id="journey">
                     <h3 class="av-title">Application Journey</h3>
-                    <p class="av-sub">Track posisi aplikasi Anda pada alur penerimaan VIS Bintaro.</p>
+                    <p class="av-sub">Track your application position throughout the VIS Bintaro admissions journey.</p>
                     <div class="av-timeline">
                         @foreach($timeline as $index => $step)
                             @php
@@ -834,7 +1032,7 @@
 
                     @if($isTerminal)
                         <div class="av-good">
-                            Aplikasi ini berada pada status akhir: <strong>{{ $statusUi['label'] }}</strong>.
+                            This application is currently at a final status: <strong>{{ $statusUi['label'] }}</strong>.
                         </div>
                     @endif
                 </section>

@@ -35,10 +35,19 @@ class EditApplication extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        if ($this->getRecord()->status !== 'draft') {
+        $status = (string) $this->getRecord()->status;
+        $canEdit = in_array($status, ['draft', 'accepted', 'enrolled'], true);
+
+        if (! $canEdit) {
             throw ValidationException::withMessages([
-                'data.status' => 'Submitted applications are read-only.',
+                'data.status' => 'This application is read-only at its current status.',
             ]);
+        }
+
+        if ($status !== 'draft') {
+            // After acceptance, only relationship data (documents / medical record)
+            // may be updated from the parent wizard.
+            return [];
         }
 
         unset(
@@ -78,7 +87,7 @@ class EditApplication extends EditRecord
                 ->modalHeading('Submit Application')
                 ->modalDescription(
                     'Once submitted, your application will be sent to the school for review ' .
-                    'and you will no longer be able to edit it. Are you sure everything is correct?'
+                    'and student biodata will be locked. Are you sure everything is correct?'
                 )
                 ->modalSubmitActionLabel('Yes, Submit Now')
                 ->visible(fn (): bool => $this->getRecord()->status === 'draft')

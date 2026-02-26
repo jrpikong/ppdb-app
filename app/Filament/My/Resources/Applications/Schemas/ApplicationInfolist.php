@@ -18,7 +18,7 @@ use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 class ApplicationInfolist
 {
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static function statusColor(string $state): string
     {
@@ -42,15 +42,15 @@ class ApplicationInfolist
         return (string) str($state)->replace('_', ' ')->title();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static function configure(Schema $schema): Schema
     {
         return $schema->schema([
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // APPLICATION HEADER
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make()
                 ->schema([
                     Grid::make(4)->schema([
@@ -102,7 +102,7 @@ class ApplicationInfolist
                             ->color('neutral'),
                     ]),
 
-                    // School note — rendered as callout when present
+                    // School note â€” rendered as callout when present
                     Callout::make('Note from School')
                         ->color('warning')
                         ->icon(Heroicon::OutlinedChatBubbleLeftRight)
@@ -111,9 +111,9 @@ class ApplicationInfolist
                         ->columnSpanFull(),
                 ]),
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // STUDENT BIODATA
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make('Student Information')
                 ->icon(Heroicon::OutlinedUser)
                 ->iconColor('primary')
@@ -135,15 +135,15 @@ class ApplicationInfolist
 
                         TextEntry::make('student_preferred_name')
                             ->label('Preferred Name')
-                            ->placeholder('—')
+                            ->placeholder('â€”')
                             ->color('neutral'),
 
                         TextEntry::make('gender')
                             ->label('Gender')
                             ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                'male'   => '♂  Male',
-                                'female' => '♀  Female',
-                                default  => '—',
+                                'male'   => 'â™‚  Male',
+                                'female' => 'â™€  Female',
+                                default  => 'â€”',
                             })
                             ->color('neutral'),
 
@@ -154,39 +154,27 @@ class ApplicationInfolist
 
                         TextEntry::make('birth_place')
                             ->label('Place of Birth')
-                            ->placeholder('—')
+                            ->placeholder('â€”')
                             ->color('neutral'),
 
                         TextEntry::make('nationality')
                             ->label('Nationality')
-                            ->placeholder('—')
+                            ->placeholder('â€”')
                             ->icon(Heroicon::OutlinedFlag)
                             ->color('neutral'),
 
                         TextEntry::make('passport_number')
                             ->label('Passport / NIK')
-                            ->placeholder('—')
+                            ->placeholder('â€”')
                             ->copyable()
                             ->copyMessage('Copied!')
-                            ->color('neutral'),
-
-                        TextEntry::make('email')
-                            ->label('Student Email')
-                            ->placeholder('—')
-                            ->icon(Heroicon::OutlinedEnvelope)
-                            ->color('neutral'),
-
-                        TextEntry::make('phone')
-                            ->label('Student Phone')
-                            ->placeholder('—')
-                            ->icon(Heroicon::OutlinedPhone)
                             ->color('neutral'),
                     ]),
                 ]),
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // ADDRESS & PREVIOUS SCHOOL
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make('Address & Previous School')
                 ->icon(Heroicon::OutlinedMapPin)
                 ->iconColor('warning')
@@ -200,23 +188,23 @@ class ApplicationInfolist
                         ->schema([
                             TextEntry::make('current_address')
                                 ->label('Street Address')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral')
                                 ->columnSpan(3),
 
                             TextEntry::make('current_city')
                                 ->label('City')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             TextEntry::make('current_country')
                                 ->label('Country')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             TextEntry::make('current_postal_code')
                                 ->label('Postal Code')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
                         ]),
 
@@ -228,47 +216,35 @@ class ApplicationInfolist
                         ->schema([
                             TextEntry::make('previous_school_name')
                                 ->label('School Name')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral')
                                 ->columnSpan(2),
 
                             TextEntry::make('previous_school_country')
                                 ->label('Country')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             TextEntry::make('current_grade_level')
                                 ->label('Grade Level')
-                                ->placeholder('—')
-                                ->color('neutral'),
-
-                            TextEntry::make('previous_school_start_date')
-                                ->label('From')
-                                ->date('M Y')
-                                ->placeholder('—')
-                                ->color('neutral'),
-
-                            TextEntry::make('previous_school_end_date')
-                                ->label('To')
-                                ->date('M Y')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
                         ]),
 
                     TextEntry::make('languages_spoken')
                         ->label('Languages Spoken')
-                        ->placeholder('—')
+                        ->placeholder('â€”')
                         ->color('neutral'),
 
                     TextEntry::make('interests_hobbies')
                         ->label('Interests & Hobbies')
-                        ->placeholder('—')
+                        ->placeholder('â€”')
                         ->color('neutral'),
                 ]),
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // PARENT / GUARDIAN
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make('Parent / Guardian Contacts')
                 ->icon(Heroicon::OutlinedUserGroup)
                 ->iconColor('info')
@@ -307,16 +283,9 @@ class ApplicationInfolist
                                     ->color('neutral')
                                     ->weight(FontWeight::SemiBold),
 
-                                TextEntry::make('email')
-                                    ->label('Email')
-                                    ->placeholder('—')
-                                    ->copyable()
-                                    ->icon(Heroicon::OutlinedEnvelope)
-                                    ->color('neutral'),
-
                                 TextEntry::make('mobile')
                                     ->label('Mobile')
-                                    ->placeholder('—')
+                                    ->placeholder('â€”')
                                     ->icon(Heroicon::OutlinedPhone)
                                     ->color('neutral'),
                             ]),
@@ -324,12 +293,12 @@ class ApplicationInfolist
                             Grid::make(4)->schema([
                                 TextEntry::make('occupation')
                                     ->label('Occupation')
-                                    ->placeholder('—')
+                                    ->placeholder('â€”')
                                     ->color('neutral'),
 
                                 TextEntry::make('company_name')
                                     ->label('Company')
-                                    ->placeholder('—')
+                                    ->placeholder('â€”')
                                     ->color('neutral'),
 
                                 IconEntry::make('is_primary_contact')
@@ -351,9 +320,9 @@ class ApplicationInfolist
                         ]),
                 ]),
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // MEDICAL INFORMATION
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make('Medical Information')
                 ->icon(Heroicon::OutlinedHeart)
                 ->iconColor('danger')
@@ -370,12 +339,12 @@ class ApplicationInfolist
 
                         TextEntry::make('medicalRecord.height')
                             ->label('Height')
-                            ->formatStateUsing(fn ($state): string => $state ? "{$state} cm" : '—')
+                            ->formatStateUsing(fn ($state): string => $state ? "{$state} cm" : 'â€”')
                             ->color('neutral'),
 
                         TextEntry::make('medicalRecord.weight')
                             ->label('Weight')
-                            ->formatStateUsing(fn ($state): string => $state ? "{$state} kg" : '—')
+                            ->formatStateUsing(fn ($state): string => $state ? "{$state} kg" : 'â€”')
                             ->color('neutral'),
                     ]),
 
@@ -392,7 +361,7 @@ class ApplicationInfolist
 
                             TextEntry::make('medicalRecord.food_allergies_details')
                                 ->label('Allergy Details')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             IconEntry::make('medicalRecord.has_medical_conditions')
@@ -403,7 +372,7 @@ class ApplicationInfolist
 
                             TextEntry::make('medicalRecord.medical_conditions')
                                 ->label('Details')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             IconEntry::make('medicalRecord.requires_daily_medication')
@@ -414,7 +383,7 @@ class ApplicationInfolist
 
                             TextEntry::make('medicalRecord.daily_medications')
                                 ->label('Medication Details')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             IconEntry::make('medicalRecord.has_dietary_restrictions')
@@ -425,7 +394,7 @@ class ApplicationInfolist
 
                             TextEntry::make('medicalRecord.dietary_restrictions')
                                 ->label('Dietary Details')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             IconEntry::make('medicalRecord.has_special_needs')
@@ -436,7 +405,7 @@ class ApplicationInfolist
 
                             TextEntry::make('medicalRecord.special_needs_description')
                                 ->label('Special Needs Details')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             IconEntry::make('medicalRecord.immunizations_up_to_date')
@@ -454,42 +423,42 @@ class ApplicationInfolist
                         ->schema([
                             TextEntry::make('medicalRecord.emergency_contact_name')
                                 ->label('Contact Name')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral')
                                 ->weight(FontWeight::SemiBold),
 
                             TextEntry::make('medicalRecord.emergency_contact_phone')
                                 ->label('Phone')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->icon(Heroicon::OutlinedPhone)
                                 ->color('neutral'),
 
                             TextEntry::make('medicalRecord.emergency_contact_relationship')
                                 ->label('Relationship')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             TextEntry::make('medicalRecord.doctor_name')
                                 ->label('Family Doctor')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
 
                             TextEntry::make('medicalRecord.doctor_phone')
                                 ->label('Doctor Phone')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->icon(Heroicon::OutlinedPhone)
                                 ->color('neutral'),
 
                             TextEntry::make('medicalRecord.hospital_preference')
                                 ->label('Preferred Hospital')
-                                ->placeholder('—')
+                                ->placeholder('â€”')
                                 ->color('neutral'),
                         ]),
 
-                    // ✅ BENAR — TextEntry dengan visual menyerupai callout
+                    // âœ… BENAR â€” TextEntry dengan visual menyerupai callout
                     TextEntry::make('medicalRecord.additional_notes')
                         ->label('Additional Medical Notes')
-                        ->placeholder('—')
+                        ->placeholder('â€”')
                         ->color('neutral')
                         ->icon(Heroicon::OutlinedInformationCircle)
                         ->iconColor('info')
@@ -499,9 +468,9 @@ class ApplicationInfolist
                         ),
                 ]),
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // UPLOADED DOCUMENTS
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make('Uploaded Documents')
                 ->icon(Heroicon::OutlinedPaperClip)
                 ->iconColor('gray')
@@ -524,7 +493,7 @@ class ApplicationInfolist
                                 TextEntry::make('name_and_size')
                                     ->label('File')
                                     ->getStateUsing(function ($record): string {
-                                        $name = $record->name ?? '—';
+                                        $name = $record->name ?? 'â€”';
 
                                         if (! $record->file_size) {
                                             return $name;
@@ -554,7 +523,7 @@ class ApplicationInfolist
                                 TextEntry::make('file_path')
                                     ->label('File')
                                     ->formatStateUsing(fn (?string $state): string =>
-                                    $state ? 'View / Download' : '—'
+                                    $state ? 'View / Download' : 'â€”'
                                     )
                                     ->url(fn ($record): ?string =>
                                     filled($record->file_path)
@@ -565,7 +534,7 @@ class ApplicationInfolist
                                     ->color('primary'),
                             ]),
 
-                            // ⚠️ Rejection callout — only when rejected
+                            // âš ï¸ Rejection callout â€” only when rejected
                             Callout::make('Rejection Reason')
                                 ->color('danger')
                                 ->icon(Heroicon::OutlinedExclamationTriangle)
@@ -577,9 +546,9 @@ class ApplicationInfolist
                         ]),
                 ]),
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // PAYMENTS
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make('Payments')
                 ->icon(Heroicon::OutlinedCreditCard)
                 ->iconColor('success')
@@ -618,7 +587,7 @@ class ApplicationInfolist
                                 TextEntry::make('paid_at')
                                     ->label('Paid On')
                                     ->dateTime('d M Y, H:i')
-                                    ->placeholder('—')
+                                    ->placeholder('â€”')
                                     ->color('neutral'),
                             ]),
 
@@ -633,9 +602,9 @@ class ApplicationInfolist
                         ]),
                 ]),
 
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             // ENROLLMENT
-            // ══════════════════════════════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             Section::make('Enrollment')
                 ->icon(Heroicon::OutlinedAcademicCap)
                 ->iconColor('success')
@@ -673,7 +642,7 @@ class ApplicationInfolist
 
                     TextEntry::make('enrollment.notes')
                         ->label('Enrollment Notes')
-                        ->placeholder('—')
+                        ->placeholder('â€”')
                         ->color('neutral')
                         ->columnSpanFull()
                         ->visible(fn (Application $record): bool => filled($record->enrollment?->notes)),
@@ -681,4 +650,5 @@ class ApplicationInfolist
         ]);
     }
 }
+
 

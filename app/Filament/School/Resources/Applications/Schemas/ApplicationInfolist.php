@@ -147,21 +147,6 @@ class ApplicationInfolist extends ViewRecord
                                     ->copyable(),
                             ]),
 
-                        Grid::make(2)
-                            ->schema([
-                                TextEntry::make('email')
-                                    ->label('Student Email')
-                                    ->icon('heroicon-o-envelope')
-                                    ->placeholder('N/A')
-                                    ->copyable(),
-
-                                TextEntry::make('phone')
-                                    ->label('Student Phone')
-                                    ->icon('heroicon-o-phone')
-                                    ->placeholder('N/A')
-                                    ->copyable(),
-                            ]),
-
                         TextEntry::make('languages_spoken')
                             ->label('Languages Spoken')
                             ->placeholder('N/A')
@@ -241,16 +226,6 @@ class ApplicationInfolist extends ViewRecord
                                 TextEntry::make('current_grade_level')
                                     ->label('Current Grade')
                                     ->badge()
-                                    ->placeholder('N/A'),
-
-                                TextEntry::make('previous_school_start_date')
-                                    ->label('Start Date')
-                                    ->date('M Y')
-                                    ->placeholder('N/A'),
-
-                                TextEntry::make('previous_school_end_date')
-                                    ->label('End Date')
-                                    ->date('M Y')
                                     ->placeholder('N/A'),
                             ]),
                     ])

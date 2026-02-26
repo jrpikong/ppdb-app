@@ -7,11 +7,11 @@
 
     $wizardSteps = [
         ['title' => 'Step 1 - Admission Setup', 'desc' => 'Periode penerimaan dan jenjang akan terisi otomatis dari aplikasi yang dibuat.'],
-        ['title' => 'Step 2 - Biodata Siswa', 'desc' => 'Isi nama lengkap, gender, tempat/tanggal lahir, kewarganegaraan, kontak, bahasa, dan minat.'],
+        ['title' => 'Step 2 - Biodata Siswa', 'desc' => 'Isi nama lengkap, gender, tempat/tanggal lahir, kewarganegaraan (opsional), bahasa, dan minat.'],
         ['title' => 'Step 3 - Alamat & Sekolah Asal', 'desc' => 'Isi alamat domisili lengkap serta data sekolah sebelumnya bila ada.'],
         ['title' => 'Step 4 - Data Orang Tua / Wali', 'desc' => 'Minimal 1 data parent/wali wajib terisi beserta email dan nomor HP aktif.'],
-        ['title' => 'Step 5 - Informasi Kesehatan', 'desc' => 'Lengkapi alergi, kondisi medis khusus, imunisasi, serta kontak darurat.'],
-        ['title' => 'Step 6 - Upload Dokumen', 'desc' => 'Upload semua dokumen wajib sesuai format dan ukuran maksimal.'],
+        ['title' => 'Step 5 - Informasi Kesehatan', 'desc' => 'Muncul setelah status accepted untuk melengkapi kesiapan enrollment.'],
+        ['title' => 'Step 6 - Upload Dokumen', 'desc' => 'Muncul setelah status accepted untuk upload dokumen pendukung.'],
         ['title' => 'Step 7 - Review & Submit', 'desc' => 'Periksa semua data, pastikan saving seat sudah terverifikasi, lalu submit aplikasi.'],
     ];
 
@@ -28,10 +28,10 @@
     ];
 
     $faqs = [
-        ['Saya tidak bisa submit aplikasi, kenapa?', 'Pastikan semua field wajib diisi, minimal 1 parent/wali tersedia, 9 dokumen wajib lengkap, dan Saving Seat Payment sudah berstatus Verified.'],
+        ['Saya tidak bisa submit aplikasi, kenapa?', 'Pastikan semua field wajib diisi, minimal 2 parent/wali tersedia, dan Saving Seat Payment sudah berstatus Verified.'],
         ['Kenapa tombol submit tidak aktif?', 'Tombol submit akan aktif setelah pembayaran Saving Seat diverifikasi oleh Finance Admin.'],
         ['Bisa edit data setelah submit?', 'Tidak bisa. Setelah status submitted, data utama terkunci. Hubungi admin admissions jika ada koreksi penting.'],
-        ['Dokumen saya ditolak, bagaimana?', 'Silakan upload ulang dokumen yang ditolak melalui portal My sesuai catatan perbaikan dari sekolah.'],
+        ['Dokumen saya ditolak, bagaimana?', 'Silakan upload ulang dokumen yang ditolak melalui portal My setelah status accepted sesuai catatan perbaikan dari sekolah.'],
         ['Berapa lama verifikasi pembayaran?', 'Rata-rata 1-2 hari kerja setelah bukti transfer di-upload.'],
     ];
 @endphp
@@ -485,7 +485,6 @@
 -> pilih program/jenjang
 -> sistem buat draft + nomor aplikasi
 -> lanjut wizard 7 langkah
--> upload dokumen
 -> upload saving seat
 -> submit aplikasi (status: submitted)</pre>
                 </section>
@@ -505,7 +504,7 @@
 
                 <section id="dokumen" class="pg-card">
                     <h3 class="pg-title">4) Dokumen Wajib</h3>
-                    <p class="pg-sub">Semua dokumen wajib harus terupload sebelum submit aplikasi.</p>
+                    <p class="pg-sub">Dokumen wajib diinput setelah aplikasi berstatus <strong>accepted</strong> untuk proses enrollment.</p>
                     <div class="pg-table-wrap">
                         <table class="pg-table">
                             <thead>
@@ -581,9 +580,9 @@
                         <div class="pg-check-item">[ ] Akun sudah terverifikasi email</div>
                         <div class="pg-check-item">[ ] Draft aplikasi sudah dibuat</div>
                         <div class="pg-check-item">[ ] Semua step wizard sudah lengkap</div>
-                        <div class="pg-check-item">[ ] 9 dokumen wajib sudah upload</div>
                         <div class="pg-check-item">[ ] Saving Seat sudah verified</div>
                         <div class="pg-check-item">[ ] Aplikasi sudah submit (submitted)</div>
+                        <div class="pg-check-item">[ ] Jika sudah accepted, data medical + dokumen sudah dilengkapi</div>
                         <div class="pg-check-item">[ ] Jadwal interview/test sudah dicek</div>
                         <div class="pg-check-item">[ ] Notifikasi status selalu dipantau</div>
                     </div>

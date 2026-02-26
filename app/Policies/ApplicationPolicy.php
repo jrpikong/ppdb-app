@@ -45,7 +45,7 @@ class ApplicationPolicy
 
         if ($this->isParent($user)) {
             return (int) $application->user_id === (int) $user->id
-                && (string) $application->status === 'draft';
+                && in_array((string) $application->status, ['draft', 'accepted', 'enrolled'], true);
         }
 
         return $this->isSchoolStaffFor($user, (int) $application->school_id);

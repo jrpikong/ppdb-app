@@ -222,11 +222,6 @@ class FilamentActionEndpointsTest extends TestCase
         ]);
 
         if ($withRequiredSubmitData) {
-            $application->update([
-                'email' => 'student.action@example.test',
-                'phone' => '081234567890',
-            ]);
-
             ParentGuardian::create([
                 'application_id' => $application->id,
                 'type' => 'father',

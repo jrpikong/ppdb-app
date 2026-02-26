@@ -20,6 +20,45 @@ class ApplicationsTable
 {
     public static function configure(Table $table): Table
     {
+        $resolveEnrollmentReadiness = static function (Application $record): array {
+            static $requiredTypesBySchool = [];
+
+            $schoolId = (int) $record->school_id;
+
+            if (! array_key_exists($schoolId, $requiredTypesBySchool)) {
+                $requiredTypesBySchool[$schoolId] = Application::getRequiredDocumentTypesForSchool($schoolId > 0 ? $schoolId : null);
+            }
+
+            $requiredTypes = $requiredTypesBySchool[$schoolId];
+            $requiredCount = count($requiredTypes);
+
+            $uploadedTypes = $record->documents
+                ->pluck('type')
+                ->filter(static fn ($type): bool => filled($type))
+                ->unique()
+                ->values()
+                ->all();
+
+            $uploadedRequiredCount = count(array_intersect($requiredTypes, $uploadedTypes));
+
+            $medicalRecord = $record->medicalRecord;
+            $medicalComplete = filled($medicalRecord?->blood_type)
+                && filled($medicalRecord?->emergency_contact_name)
+                && filled($medicalRecord?->emergency_contact_phone);
+
+            $documentsComplete = $requiredCount === 0 || $uploadedRequiredCount >= $requiredCount;
+
+            return [
+                'label' => sprintf(
+                    '%d/%d docs - %s',
+                    $uploadedRequiredCount,
+                    $requiredCount,
+                    $medicalComplete ? 'medical ok' : 'medical missing'
+                ),
+                'is_complete' => $medicalComplete && $documentsComplete,
+            ];
+        };
+
         return $table
             ->columns([
                 // ── Left block: status icon + app number ──────────────────
@@ -91,6 +130,25 @@ class ApplicationsTable
                                 'withdrawn'                          => 'gray',
                                 default                              => 'gray',
                             }),
+
+                        TextColumn::make('enrollment_readiness')
+                            ->label('Enrollment Data')
+                            ->size('xs')
+                            ->badge()
+                            ->getStateUsing(function (?Application $record) use ($resolveEnrollmentReadiness): string {
+                                if (! $record || ! in_array($record->status, ['accepted', 'enrolled'], true)) {
+                                    return 'N/A';
+                                }
+
+                                return $resolveEnrollmentReadiness($record)['label'];
+                            })
+                            ->color(function (?Application $record) use ($resolveEnrollmentReadiness): string {
+                                if (! $record || ! in_array($record->status, ['accepted', 'enrolled'], true)) {
+                                    return 'gray';
+                                }
+
+                                return $resolveEnrollmentReadiness($record)['is_complete'] ? 'success' : 'warning';
+                            }),
                     ])->space(1)->grow(false),
                 ]),
 
@@ -144,7 +202,7 @@ class ApplicationsTable
                 ViewAction::make()->iconButton(),
                 EditAction::make()
                     ->iconButton()
-                    ->visible(fn (Application $record): bool => $record->status === 'draft'),
+                    ->visible(fn (Application $record): bool => in_array($record->status, ['draft', 'accepted', 'enrolled'], true)),
                 DeleteAction::make()
                     ->iconButton()
                     ->visible(fn (Application $record): bool => $record->status === 'draft')

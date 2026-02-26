@@ -66,8 +66,6 @@ class ApplicationRequiredDocumentsTest extends TestCase
             'birth_date' => '2017-01-15',
             'nationality' => 'Indonesian',
             'gender' => 'female',
-            'email' => 'dina@example.test',
-            'phone' => '081234567890',
             'current_address' => 'Jl. Test',
             'current_city' => 'Jakarta',
             'current_country' => 'Indonesia',

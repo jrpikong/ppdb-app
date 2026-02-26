@@ -38,10 +38,6 @@ return new class extends Migration
             $table->string('nationality');
             $table->string('passport_number')->nullable();
 
-            // Contact Information
-            $table->string('email')->nullable();
-            $table->string('phone', 20)->nullable();
-
             // Current Address
             $table->text('current_address')->nullable();
             $table->string('current_city')->nullable();
@@ -52,8 +48,6 @@ return new class extends Migration
             $table->string('previous_school_name')->nullable();
             $table->string('previous_school_country')->nullable();
             $table->string('current_grade_level')->nullable(); // Current level at previous school
-            $table->date('previous_school_start_date')->nullable();
-            $table->date('previous_school_end_date')->nullable();
 
             // Special Information
             $table->text('special_needs')->nullable();

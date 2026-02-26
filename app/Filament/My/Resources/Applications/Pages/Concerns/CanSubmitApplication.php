@@ -5,34 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\My\Resources\Applications\Pages\Concerns;
 
 use App\Models\Application;
-use App\Models\Document;
 use Filament\Notifications\Notification;
 use RuntimeException;
 
 trait CanSubmitApplication
 {
-    /**
-     * @return array<int, string>
-     */
-    protected function getRequiredDocumentTypes(?Application $record = null): array
-    {
-        if ($record) {
-            return $record->getRequiredDocumentTypes();
-        }
-
-        return Application::REQUIRED_DOCUMENT_TYPES;
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    protected function getMissingRequiredDocuments(Application $record): array
-    {
-        $uploaded = $record->documents()->pluck('type')->toArray();
-
-        return array_values(array_diff($this->getRequiredDocumentTypes($record), $uploaded));
-    }
-
     protected function submitApplication(Application $record): void
     {
         if ($record->status !== 'draft') {
@@ -102,9 +79,6 @@ trait CanSubmitApplication
             'student_last_name' => 'Student Last Name',
             'gender' => 'Gender',
             'birth_date' => 'Birth Date',
-            'nationality' => 'Nationality',
-            'email' => 'Student Email',
-            'phone' => 'Student Phone',
             'current_address' => 'Current Address',
             'current_city' => 'Current City',
             'current_country' => 'Current Country',
@@ -118,19 +92,6 @@ trait CanSubmitApplication
 
         if ($record->parentGuardians()->count() < 2) {
             $errors[] = '- Add at least two parent/guardian contacts.';
-        }
-
-        $missingRequiredDocs = $this->getMissingRequiredDocuments($record);
-
-        if ($missingRequiredDocs !== []) {
-            $requiredCount = count($this->getRequiredDocumentTypes($record));
-
-            $missingLabels = collect($missingRequiredDocs)
-                ->map(fn (string $type): string => Document::DOCUMENT_TYPES[$type] ?? (string) str($type)->replace('_', ' ')->title())
-                ->implode(', ');
-
-            $errors[] = "- Upload all {$requiredCount} required documents before submitting.";
-            $errors[] = "- Missing documents: {$missingLabels}.";
         }
 
         if (! $record->hasVerifiedPreSubmissionPayment()) {

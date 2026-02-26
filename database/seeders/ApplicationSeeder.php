@@ -239,10 +239,6 @@ class ApplicationSeeder extends Seeder
 
         $reviewedBy = $reviewedAt ? $assignedTo : null;
 
-        // Sanitise email: remove apostrophes and non-alphanumeric chars
-        $emailFirst = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $student['first']));
-        $emailLast  = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $student['last']));
-
         return Application::create([
             'user_id'             => $parent->id,
             'school_id'           => $school->id,
@@ -262,10 +258,6 @@ class ApplicationSeeder extends Seeder
             'nationality'           => $this->getRandomNationality(),
             'passport_number'       => $this->generatePassportNumber(),
 
-            // Contact
-            'email' => "{$emailFirst}.{$emailLast}@student.vis.sch.id",
-            'phone' => $this->generateIndonesianPhone(),
-
             // Address
             'current_address'     => $this->getIndonesianAddress($school),
             'current_city'        => $this->getCityBySchool($school),
@@ -276,8 +268,6 @@ class ApplicationSeeder extends Seeder
             'previous_school_name'       => $this->getPreviousSchoolName($level),
             'previous_school_country'    => rand(1, 10) > 7 ? $this->getRandomCountry() : 'Indonesia',
             'current_grade_level'        => $this->getCurrentGradeLevel($level),
-            'previous_school_start_date' => $birthDate->copy()->addYears(3),
-            'previous_school_end_date'   => now()->subMonths(3),
 
             // Educational profile
             'languages_spoken'      => $this->getLanguages(),

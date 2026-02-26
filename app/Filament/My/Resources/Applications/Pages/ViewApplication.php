@@ -31,7 +31,7 @@ class ViewApplication extends ViewRecord
                 ->openUrlInNewTab()
                 ->visible(fn () => in_array($this->getRecord()->status, ['accepted', 'enrolled'], true)),
             EditAction::make()
-                ->visible(fn () => $this->getRecord()->status === 'draft'),
+                ->visible(fn () => in_array($this->getRecord()->status, ['draft', 'accepted', 'enrolled'], true)),
             Action::make('submitApplication')
                 ->label('Submit Application')
                 ->icon('heroicon-o-paper-airplane')
@@ -66,42 +66,94 @@ class ViewApplication extends ViewRecord
         ]);
     }
 
+    public function shouldShowPostAcceptanceProgress(): bool
+    {
+        return in_array((string) $this->getRecordForView()->status, ['accepted', 'enrolled'], true);
+    }
+
+    /**
+     * @return array{
+     *     overall_percentage:int,
+     *     medical:array{required:int,completed:int,percentage:int,missing:array<int,string>,is_complete:bool},
+     *     documents:array{required:int,uploaded:int,percentage:int,missing:array<int,string>,is_complete:bool},
+     *     next_action_label:string
+     * }
+     */
+    public function getPostAcceptanceProgress(): array
+    {
+        $record = $this->getRecordForView();
+        $medicalRecord = $record->medicalRecord;
+
+        $medicalChecks = [
+            'Blood Type' => filled($medicalRecord?->blood_type),
+            'Emergency Contact Name' => filled($medicalRecord?->emergency_contact_name),
+            'Emergency Contact Phone' => filled($medicalRecord?->emergency_contact_phone),
+        ];
+
+        $medicalRequired = count($medicalChecks);
+        $medicalCompleted = count(array_filter($medicalChecks));
+        $medicalMissing = collect($medicalChecks)
+            ->filter(static fn (bool $isComplete): bool => ! $isComplete)
+            ->keys()
+            ->values()
+            ->all();
+
+        $medicalPercentage = $medicalRequired > 0
+            ? (int) round(($medicalCompleted / $medicalRequired) * 100)
+            : 100;
+
+        $requiredDocumentTypes = $record->getRequiredDocumentTypes();
+        $uploadedDocumentTypes = $record->documents
+            ->pluck('type')
+            ->filter(static fn ($type): bool => filled($type))
+            ->unique()
+            ->values()
+            ->all();
+
+        $uploadedRequiredDocuments = count(array_intersect($requiredDocumentTypes, $uploadedDocumentTypes));
+        $documentRequired = count($requiredDocumentTypes);
+        $documentMissing = array_values(array_diff($requiredDocumentTypes, $uploadedDocumentTypes));
+        $documentPercentage = $documentRequired > 0
+            ? (int) round(($uploadedRequiredDocuments / $documentRequired) * 100)
+            : 100;
+
+        $overallPercentage = (int) round(($medicalPercentage + $documentPercentage) / 2);
+
+        $nextActionLabel = match (true) {
+            $medicalCompleted < $medicalRequired => 'Complete Medical Information',
+            $uploadedRequiredDocuments < $documentRequired => 'Upload Supporting Documents',
+            default => 'Review Data Enrollment',
+        };
+
+        return [
+            'overall_percentage' => $overallPercentage,
+            'medical' => [
+                'required' => $medicalRequired,
+                'completed' => $medicalCompleted,
+                'percentage' => $medicalPercentage,
+                'missing' => $medicalMissing,
+                'is_complete' => $medicalCompleted === $medicalRequired,
+            ],
+            'documents' => [
+                'required' => $documentRequired,
+                'uploaded' => $uploadedRequiredDocuments,
+                'percentage' => $documentPercentage,
+                'missing' => collect($documentMissing)
+                    ->map(fn (string $type): string => $this->getDocumentTypeLabel($type))
+                    ->values()
+                    ->all(),
+                'is_complete' => $uploadedRequiredDocuments === $documentRequired,
+            ],
+            'next_action_label' => $nextActionLabel,
+        ];
+    }
+
     /**
      * @return array<int, string>
      */
     public function getReadinessErrors(): array
     {
         return $this->validateApplicationForSubmit($this->getRecordForView());
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public function getRequiredDocumentTypes(?Application $record = null): array
-    {
-        return ($record ?? $this->getRecordForView())->getRequiredDocumentTypes();
-    }
-
-    /**
-     * @return array{required:int, uploaded:int}
-     */
-    public function getRequiredDocumentStats(): array
-    {
-        $record = $this->getRecordForView();
-        $required = $this->getRequiredDocumentTypes();
-        $uploadedTypes = $record->documents->pluck('type')->toArray();
-        $uploaded = 0;
-
-        foreach ($required as $type) {
-            if (in_array($type, $uploadedTypes, true)) {
-                $uploaded++;
-            }
-        }
-
-        return [
-            'required' => count($required),
-            'uploaded' => $uploaded,
-        ];
     }
 
     /**

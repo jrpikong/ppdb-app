@@ -34,10 +34,8 @@ use RuntimeException;
  * @property string|null $gender
  * @property string|null $birth_place
  * @property Carbon $birth_date
- * @property string $nationality
+ * @property string|null $nationality
  * @property string|null $passport_number
- * @property string|null $email
- * @property string|null $phone
  * @property string|null $current_address
  * @property string|null $current_city
  * @property string|null $current_country
@@ -45,8 +43,6 @@ use RuntimeException;
  * @property string|null $previous_school_name
  * @property string|null $previous_school_country
  * @property string|null $current_grade_level
- * @property Carbon|null $previous_school_start_date
- * @property Carbon|null $previous_school_end_date
  * @property string|null $special_needs
  * @property string|null $learning_support_required
  * @property string|null $languages_spoken
@@ -157,8 +153,6 @@ class Application extends Model
         'birth_date',
         'nationality',
         'passport_number',
-        'email',
-        'phone',
         'current_address',
         'current_city',
         'current_country',
@@ -166,8 +160,6 @@ class Application extends Model
         'previous_school_name',
         'previous_school_country',
         'current_grade_level',
-        'previous_school_start_date',
-        'previous_school_end_date',
         'special_needs',
         'learning_support_required',
         'languages_spoken',
@@ -192,8 +184,6 @@ class Application extends Model
         'birth_date',
         'nationality',
         'passport_number',
-        'email',
-        'phone',
         'current_address',
         'current_city',
         'current_country',
@@ -201,8 +191,6 @@ class Application extends Model
         'previous_school_name',
         'previous_school_country',
         'current_grade_level',
-        'previous_school_start_date',
-        'previous_school_end_date',
         'special_needs',
         'learning_support_required',
         'languages_spoken',
@@ -226,8 +214,6 @@ class Application extends Model
     {
         return [
             'birth_date' => 'date',
-            'previous_school_start_date' => 'date',
-            'previous_school_end_date' => 'date',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'decision_made_at' => 'datetime',
@@ -362,8 +348,7 @@ class Application extends Model
         return $query->where(function($q) use ($term) {
             $q->where('application_number', 'like', "%{$term}%")
               ->orWhere('student_first_name', 'like', "%{$term}%")
-              ->orWhere('student_last_name', 'like', "%{$term}%")
-              ->orWhere('email', 'like', "%{$term}%");
+              ->orWhere('student_last_name', 'like', "%{$term}%");
         });
     }
 
@@ -611,7 +596,6 @@ class Application extends Model
         return $this->isDraft()
             && $this->hasSubmissionRequiredFields()
             && $this->parentGuardians()->count() >= 2
-            && $this->hasAllRequiredDocuments()
             && $this->hasVerifiedPreSubmissionPayment()
             && $this->getCompletionPercentage() === 100;
     }
@@ -634,9 +618,6 @@ class Application extends Model
             'student_last_name',
             'gender',
             'birth_date',
-            'nationality',
-            'email',
-            'phone',
             'current_address',
             'current_city',
             'current_country',
@@ -706,10 +687,8 @@ class Application extends Model
     {
         $steps = [
             'personal_info' => filled($this->student_first_name) && filled($this->student_last_name) && filled($this->birth_date),
-            'contact_info' => filled($this->email) && filled($this->phone),
             'address' => filled($this->current_address) && filled($this->current_city) && filled($this->current_country),
             'parents' => $this->parentGuardians()->count() >= 2,
-            'documents' => $this->hasAllRequiredDocuments(),
             'payment' => $this->hasVerifiedPreSubmissionPayment(),
         ];
 

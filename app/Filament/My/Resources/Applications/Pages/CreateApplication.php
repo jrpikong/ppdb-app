@@ -19,7 +19,7 @@ class CreateApplication extends CreateRecord
 
     // ──────────────────────────────────────────────────────────────────────────
     // After saving the draft, redirect straight into the edit wizard so the
-    // parent can continue filling in student biodata, guardians, documents, etc.
+        // parent can continue filling in student biodata and guardians.
     // ──────────────────────────────────────────────────────────────────────────
     protected function getRedirectUrl(): string
     {
@@ -74,7 +74,7 @@ class CreateApplication extends CreateRecord
         $data['student_first_name'] = $data['student_first_name'] ?? '';
         $data['student_last_name']  = $data['student_last_name']  ?? '';
         $data['birth_date']         = $data['birth_date']         ?? null;
-        $data['nationality']        = $data['nationality']         ?? '';
+        $data['nationality']        = $data['nationality']        ?? null;
 
         return $data;
     }

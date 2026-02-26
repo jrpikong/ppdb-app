@@ -131,7 +131,7 @@ class ApplicationResource extends Resource
         }
 
         return (int) $record->user_id === $userId
-            && strtolower((string) $record->status) === 'draft';
+            && in_array(strtolower((string) $record->status), ['draft', 'accepted', 'enrolled'], true);
     }
 
     public static function canDelete(Model $record): bool

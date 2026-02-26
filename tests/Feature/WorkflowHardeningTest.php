@@ -8,7 +8,6 @@ use App\Models\AcademicYear;
 use App\Models\ActivityLog;
 use App\Models\AdmissionPeriod;
 use App\Models\Application;
-use App\Models\Document;
 use App\Models\Level;
 use App\Models\ParentGuardian;
 use App\Models\Payment;
@@ -185,8 +184,6 @@ class WorkflowHardeningTest extends TestCase
             'student_last_name' => 'Garcia',
             'birth_date' => '2017-01-15',
             'nationality' => 'Indonesian',
-            'email' => $readyForSubmit ? 'student@example.test' : null,
-            'phone' => $readyForSubmit ? '081234567890' : null,
             'gender' => 'male',
             'current_address' => 'Jl. Test',
             'current_city' => 'Jakarta',
@@ -240,18 +237,6 @@ class WorkflowHardeningTest extends TestCase
             'is_primary_contact' => false,
             'is_emergency_contact' => true,
         ]);
-
-        foreach (Application::REQUIRED_DOCUMENT_TYPES as $index => $type) {
-            Document::create([
-                'application_id' => $application->id,
-                'type' => $type,
-                'name' => "{$type}.pdf",
-                'file_path' => "documents/{$type}-{$index}.pdf",
-                'file_type' => 'application/pdf',
-                'file_size' => 1024,
-                'status' => 'pending',
-            ]);
-        }
 
         $payment->update([
             'status' => 'verified',
