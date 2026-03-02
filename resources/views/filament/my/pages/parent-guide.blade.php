@@ -5,14 +5,17 @@
     $schedulesUrl = \App\Filament\My\Resources\Schedules\ScheduleResource::getUrl(panel: 'my');
     $profileUrl = route('filament.my.auth.profile');
 
-    $wizardSteps = [
-        ['title' => 'Step 1 - Admission Setup', 'desc' => 'Periode penerimaan dan jenjang akan terisi otomatis dari aplikasi yang dibuat.'],
-        ['title' => 'Step 2 - Biodata Siswa', 'desc' => 'Isi nama lengkap, gender, tempat/tanggal lahir, kewarganegaraan (opsional), bahasa, dan minat.'],
-        ['title' => 'Step 3 - Alamat & Sekolah Asal', 'desc' => 'Isi alamat domisili lengkap serta data sekolah sebelumnya bila ada.'],
-        ['title' => 'Step 4 - Data Orang Tua / Wali', 'desc' => 'Minimal 1 data parent/wali wajib terisi beserta email dan nomor HP aktif.'],
-        ['title' => 'Step 5 - Informasi Kesehatan', 'desc' => 'Muncul setelah status accepted untuk melengkapi kesiapan enrollment.'],
-        ['title' => 'Step 6 - Upload Dokumen', 'desc' => 'Muncul setelah status accepted untuk upload dokumen pendukung.'],
-        ['title' => 'Step 7 - Review & Submit', 'desc' => 'Periksa semua data, pastikan saving seat sudah terverifikasi, lalu submit aplikasi.'],
+    $wizardDraftSteps = [
+        ['title' => 'Step 1 - Admission Setup', 'desc' => 'Pilih School, Admission Period, dan Level. Bagian ini hanya bisa diedit saat status Draft.'],
+        ['title' => 'Step 2 - Student Biodata', 'desc' => 'Isi data inti siswa: First Name, Last Name, Gender, Birth Date, dan data pendukung lainnya.'],
+        ['title' => 'Step 3 - Address & Previous School', 'desc' => 'Isi alamat domisili lengkap: Current Address, City, Country, dan data sekolah sebelumnya (opsional).'],
+        ['title' => 'Step 4 - Parent / Guardian', 'desc' => 'Isi data kontak orang tua/wali. Untuk submit aplikasi, minimal harus ada 2 kontak parent/guardian.'],
+        ['title' => 'Step 7 - Review & Submit', 'desc' => 'Cek ringkasan data dan completion %. Tombol Submit Application ada di header halaman edit aplikasi.'],
+    ];
+
+    $postAcceptedSteps = [
+        ['title' => 'Step 5 - Medical Information', 'desc' => 'Akan muncul setelah status Accepted/Enrolled untuk kelengkapan kesiapan enrollment.'],
+        ['title' => 'Step 6 - Documents', 'desc' => 'Akan muncul setelah status Accepted/Enrolled untuk upload dokumen wajib dan dokumen tambahan.'],
     ];
 
     $requiredDocuments = [
@@ -27,12 +30,23 @@
         ['Rapor Terakhir', 'PDF, max 5 MB'],
     ];
 
+    $submitRequirements = [
+        'Status aplikasi masih Draft.',
+        'School, Admission Period, dan Level sudah dipilih.',
+        'Field wajib siswa terisi: Student First Name, Student Last Name, Gender, Birth Date.',
+        'Field alamat wajib terisi: Current Address, Current City, Current Country.',
+        'Data Parent / Guardian minimal 2 kontak.',
+        'Saving Seat payment sudah status Verified.',
+        'Completion aplikasi sudah 100%.',
+        'Tidak ada aplikasi aktif duplikat untuk anak yang sama di school + admission period yang sama.',
+    ];
+
     $faqs = [
-        ['Saya tidak bisa submit aplikasi, kenapa?', 'Pastikan semua field wajib diisi, minimal 2 parent/wali tersedia, dan Saving Seat Payment sudah berstatus Verified.'],
-        ['Kenapa tombol submit tidak aktif?', 'Tombol submit akan aktif setelah pembayaran Saving Seat diverifikasi oleh Finance Admin.'],
-        ['Bisa edit data setelah submit?', 'Tidak bisa. Setelah status submitted, data utama terkunci. Hubungi admin admissions jika ada koreksi penting.'],
-        ['Dokumen saya ditolak, bagaimana?', 'Silakan upload ulang dokumen yang ditolak melalui portal My setelah status accepted sesuai catatan perbaikan dari sekolah.'],
-        ['Berapa lama verifikasi pembayaran?', 'Rata-rata 1-2 hari kerja setelah bukti transfer di-upload.'],
+        ['Saya tidak bisa submit aplikasi, kenapa?', 'Cek 8 syarat submit: status Draft, field wajib lengkap, parent/guardian minimal 2, payment Saving Seat sudah Verified, completion 100%, dan tidak ada duplikasi aplikasi aktif anak pada sekolah/periode yang sama.'],
+        ['Kapan tombol Submit Application muncul?', 'Tombol hanya muncul di halaman Edit Application saat status masih Draft.'],
+        ['Bisa edit data setelah submit?', 'Data inti aplikasi terkunci setelah submit. Perubahan besar harus melalui bantuan admin sekolah.'],
+        ['Bagaimana alur status pembayaran?', 'Status berjalan: Pending -> Submitted (setelah submit bukti transfer) -> Verified/Rejected. Jika Rejected, Anda bisa submit ulang bukti pembayaran.'],
+        ['Kapan step Medical & Documents bisa diisi?', 'Kedua step tersebut muncul setelah aplikasi berstatus Accepted (dan tetap tersedia saat Enrolled).'],
     ];
 @endphp
 
@@ -419,10 +433,11 @@
                     <nav id="parentGuideNav" class="pg-nav">
                         <a class="pg-nav-link" href="#ringkasan">Ringkasan</a>
                         <a class="pg-nav-link" href="#registrasi">Registrasi & Login</a>
-                        <a class="pg-nav-link" href="#aplikasi">Membuat Aplikasi</a>
-                        <a class="pg-nav-link" href="#wizard">Wizard 7 Langkah</a>
-                        <a class="pg-nav-link" href="#dokumen">Dokumen Wajib</a>
+                        <a class="pg-nav-link" href="#aplikasi">Alur Draft Aplikasi</a>
+                        <a class="pg-nav-link" href="#wizard">Wizard Draft & Lanjutan</a>
+                        <a class="pg-nav-link" href="#submit">Syarat Submit</a>
                         <a class="pg-nav-link" href="#pembayaran">Pembayaran</a>
+                        <a class="pg-nav-link" href="#dokumen">Dokumen & Medical</a>
                         <a class="pg-nav-link" href="#jadwal">Jadwal & Notifikasi</a>
                         <a class="pg-nav-link" href="#faq">FAQ</a>
                         <a class="pg-nav-link" href="#checklist">Checklist Mandiri</a>
@@ -479,21 +494,22 @@
                 </section>
 
                 <section id="aplikasi" class="pg-card">
-                    <h3 class="pg-title">2) Membuat Aplikasi</h3>
-                    <p class="pg-sub">Dari menu <a class="pg-link" href="{{ $applicationIndexUrl }}">My Applications</a>, klik <strong>Start New Application</strong>, pilih program/jenjang, lalu lanjut isi wizard.</p>
+                    <h3 class="pg-title">2) Alur Draft Aplikasi (Flow Baru)</h3>
+                    <p class="pg-sub">Dari menu <a class="pg-link" href="{{ $applicationIndexUrl }}">My Applications</a>, klik <strong>Start New Application</strong>, simpan draft, lalu lanjutkan pengisian dari halaman edit aplikasi.</p>
                     <pre class="pg-pre">Start New Application
--> pilih program/jenjang
--> sistem buat draft + nomor aplikasi
--> lanjut wizard 7 langkah
--> upload saving seat
--> submit aplikasi (status: submitted)</pre>
+-> pilih School + Admission Period + Level
+-> sistem buat status Draft + nomor aplikasi
+-> lanjut isi wizard draft (Step 1-4 + Review)
+-> submit bukti pembayaran Saving Seat di My Payments
+-> pastikan payment sudah Verified + completion 100%
+-> klik Submit Application (status berubah ke Submitted)</pre>
                 </section>
 
                 <section id="wizard" class="pg-card">
-                    <h3 class="pg-title">3) Wizard Pengisian (7 Langkah)</h3>
-                    <p class="pg-sub">Setiap langkah tersimpan otomatis saat klik <strong>Next</strong>.</p>
+                    <h3 class="pg-title">3) Wizard Draft & Tahap Lanjutan</h3>
+                    <p class="pg-sub">Setiap klik <strong>Next</strong> akan auto-save. Saat status Draft, yang aktif adalah step 1-4 dan Review. Step Medical & Documents muncul setelah Accepted.</p>
                     <div class="pg-section-grid-2">
-                        @foreach ($wizardSteps as $step)
+                        @foreach ($wizardDraftSteps as $step)
                             <div class="pg-mini-card">
                                 <p class="pg-mini-title">{{ $step['title'] }}</p>
                                 <p class="pg-mini-desc">{{ $step['desc'] }}</p>
@@ -502,9 +518,45 @@
                     </div>
                 </section>
 
+                <section id="submit" class="pg-card">
+                    <h3 class="pg-title">4) Syarat Submit Application</h3>
+                    <p class="pg-sub">Syarat ini mengikuti validasi sistem saat tombol <strong>Submit Application</strong> ditekan.</p>
+                    <div class="pg-mini-card" style="margin-top: 10px;">
+                        <ul class="pg-list">
+                            @foreach ($submitRequirements as $requirement)
+                                <li>{{ $requirement }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </section>
+
+                <section id="pembayaran" class="pg-card">
+                    <h3 class="pg-title">5) Pembayaran Saving Seat</h3>
+                    <p class="pg-sub">Submit aplikasi hanya bisa dilakukan jika Saving Seat payment sudah <strong>Verified</strong>.</p>
+                    <div class="pg-mini-card" style="margin-top: 10px;">
+                        <ol class="pg-list">
+                            <li>Buka <a class="pg-link" href="{{ $paymentsUrl }}">My Payments</a>.</li>
+                            <li>Buka transaksi dengan status <code>Pending</code> atau <code>Rejected</code>.</li>
+                            <li>Klik <strong>Submit Payment Proof</strong>, lalu isi tanggal, metode bayar, dan upload bukti transfer.</li>
+                            <li>Setelah submit bukti, status berubah menjadi <code>Submitted</code> (awaiting verification).</li>
+                            <li>Finance Admin akan memverifikasi menjadi <code>Verified</code> atau <code>Rejected</code>.</li>
+                        </ol>
+                    </div>
+                </section>
+
                 <section id="dokumen" class="pg-card">
-                    <h3 class="pg-title">4) Dokumen Wajib</h3>
-                    <p class="pg-sub">Dokumen wajib diinput setelah aplikasi berstatus <strong>accepted</strong> untuk proses enrollment.</p>
+                    <h3 class="pg-title">6) Dokumen & Medical (Setelah Accepted)</h3>
+                    <p class="pg-sub">Setelah status aplikasi <strong>Accepted</strong>, Anda bisa melengkapi Step 5 (Medical) dan Step 6 (Documents) untuk proses enrollment.</p>
+                    <div class="pg-section-grid-2">
+                        @foreach ($postAcceptedSteps as $step)
+                            <div class="pg-mini-card">
+                                <p class="pg-mini-title">{{ $step['title'] }}</p>
+                                <p class="pg-mini-desc">{{ $step['desc'] }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <p class="pg-sub" style="margin-top: 12px;">Dokumen wajib bisa mengikuti konfigurasi masing-masing sekolah. Daftar di bawah adalah default dokumen yang umum diminta:</p>
                     <div class="pg-table-wrap">
                         <table class="pg-table">
                             <thead>
@@ -527,22 +579,8 @@
                     </div>
                 </section>
 
-                <section id="pembayaran" class="pg-card">
-                    <h3 class="pg-title">5) Pembayaran Saving Seat</h3>
-                    <p class="pg-sub">Sebelum submit aplikasi, pembayaran Saving Seat wajib diverifikasi oleh Finance Admin.</p>
-                    <div class="pg-mini-card" style="margin-top: 10px;">
-                        <ol class="pg-list">
-                            <li>Buka <a class="pg-link" href="{{ $paymentsUrl }}">My Payments</a>.</li>
-                            <li>Pilih aplikasi, lihat rekening tujuan, dan transfer sesuai nominal.</li>
-                            <li>Upload bukti transfer (tanggal, metode, bank, referensi).</li>
-                            <li>Tunggu status berubah dari <code>Awaiting Verification</code> ke <code>Verified</code>.</li>
-                            <li>Jika ditolak, upload ulang bukti dengan data yang benar.</li>
-                        </ol>
-                    </div>
-                </section>
-
                 <section id="jadwal" class="pg-card">
-                    <h3 class="pg-title">6) Jadwal, Notifikasi, dan Profil</h3>
+                    <h3 class="pg-title">7) Jadwal, Notifikasi, dan Profil</h3>
                     <div class="pg-section-grid-3">
                         <div class="pg-mini-card">
                             <p class="pg-mini-title">My Schedules</p>
@@ -562,7 +600,7 @@
                 </section>
 
                 <section id="faq" class="pg-card">
-                    <h3 class="pg-title">7) FAQ Singkat</h3>
+                    <h3 class="pg-title">8) FAQ Singkat</h3>
                     <div style="display: grid; gap: 8px; margin-top: 10px;">
                         @foreach ($faqs as $faq)
                             <details class="pg-details">
@@ -574,15 +612,17 @@
                 </section>
 
                 <section id="checklist" class="pg-card">
-                    <h3 class="pg-title">8) Checklist Mandiri Orang Tua</h3>
+                    <h3 class="pg-title">9) Checklist Mandiri Orang Tua</h3>
                     <p class="pg-sub">Gunakan daftar ini sebelum menekan tombol submit aplikasi.</p>
                     <div class="pg-checklist">
                         <div class="pg-check-item">[ ] Akun sudah terverifikasi email</div>
-                        <div class="pg-check-item">[ ] Draft aplikasi sudah dibuat</div>
-                        <div class="pg-check-item">[ ] Semua step wizard sudah lengkap</div>
-                        <div class="pg-check-item">[ ] Saving Seat sudah verified</div>
-                        <div class="pg-check-item">[ ] Aplikasi sudah submit (submitted)</div>
-                        <div class="pg-check-item">[ ] Jika sudah accepted, data medical + dokumen sudah dilengkapi</div>
+                        <div class="pg-check-item">[ ] Draft aplikasi sudah dibuat (School, Period, Level)</div>
+                        <div class="pg-check-item">[ ] Data wajib siswa + alamat sudah lengkap</div>
+                        <div class="pg-check-item">[ ] Parent/Guardian minimal 2 kontak</div>
+                        <div class="pg-check-item">[ ] Saving Seat sudah Verified</div>
+                        <div class="pg-check-item">[ ] Completion sudah 100%</div>
+                        <div class="pg-check-item">[ ] Aplikasi sudah Submitted</div>
+                        <div class="pg-check-item">[ ] Jika sudah Accepted, Step Medical + Documents sudah dilengkapi</div>
                         <div class="pg-check-item">[ ] Jadwal interview/test sudah dicek</div>
                         <div class="pg-check-item">[ ] Notifikasi status selalu dipantau</div>
                     </div>

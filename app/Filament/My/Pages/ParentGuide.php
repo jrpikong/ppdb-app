@@ -12,13 +12,13 @@ class ParentGuide extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'Admissions';
 
-    protected static ?string $navigationLabel = 'Panduan Orang Tua';
+    protected static ?string $navigationLabel = "Parents' Guide";
 
     protected static ?int $navigationSort = 90;
 
-    protected static ?string $slug = 'panduan-orang-tua';
+    protected static ?string $slug = 'parent-guide';
 
-    protected static ?string $title = 'Panduan Orang Tua';
+    protected static ?string $title = "Parents' Guide";
 
     protected string $view = 'filament.my.pages.parent-guide';
 }
