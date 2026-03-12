@@ -8,44 +8,44 @@ Flow diagram proses pendaftaran dan pembayaran untuk parent/client.
 graph TD
     Start([Mulai Pendaftaran]) --> Submit[Submit Formulir]
 
-    Submit -->|Tidak perlu bayar| CreateInvoice1[📝 Auto-Create<br/>Saving Seat Payment<br/>Rp 2.500.000]
+    Submit -->|Tidak perlu bayar| CreateInvoice1["📝 Auto-Create<br/>Saving Seat Payment<br/>Rp 2.500.000"]
 
-    CreateInvoice1 --> Notify1[🔔 Notifikasi<br/>In-app + Email]
-    Notify1 --> Pay1[👤 Parent Upload<br/>Bukti Bayar]
+    CreateInvoice1 --> Notify1["🔔 Notifikasi<br/>In-app + Email"]
+    Notify1 --> Pay1["👤 Parent Upload<br/>Bukti Bayar"]
 
-    Pay1 -->|Admin Verifikasi| Verify1[✅ Saving Seat<br/>VERIFIED]
-    Pay1 -.->|Ditolakkan| Rejected1[❌ Saving Seat<br/>REJECTED<br/>Upload ulang]
+    Pay1 -->|Admin Verifikasi| Verify1["✅ Saving Seat<br/>VERIFIED"]
+    Pay1 -.->|Ditolakkan| Rejected1["❌ Saving Seat<br/>REJECTED<br/>Upload ulang"]
     Rejected1 --> Pay1
 
-    Verify1 --> AdminProcess[⏳ Admin Proses Aplikasi<br/>(under_review → interview)]
+    Verify1 --> AdminProcess["⏳ Admin Proses Aplikasi<br/>under_review s/d interview"]
 
-    AdminProcess -->|Try Accept?| CheckPay[🔍 Cek Pembayaran]
-    CheckPay -.->|Belum Verified| BlockAccept[⛔ Tidak Bisa Accept<br/>Saving Seat belum lunas]
+    AdminProcess -->|Try Accept?| CheckPay["🔍 Cek Pembayaran"]
+    CheckPay -.->|Belum Verified| BlockAccept["⛔ Tidak Bisa Accept<br/>Saving Seat belum lunas"]
     BlockAccept --> AdminProcess
 
-    CheckPay -->|Sudah Verified| Accept[🎉 Aplikasi DITERIMA<br/>Status: ACCEPTED]
-    Accept --> CreateInvoice2[📝 Auto-Create Invoice:<br/>Registration Fee<br/>Rp 5.000.000]
-    Accept --> CreateInvoice3[📝 Auto-Create Invoice:<br/>Development Fee<br/>Rp 10.000.000]
+    CheckPay -->|Sudah Verified| Accept["🎉 Aplikasi DITERIMA<br/>Status: ACCEPTED"]
+    Accept --> CreateInvoice2["📝 Auto-Create Invoice:<br/>Registration Fee<br/>Rp 5.000.000"]
+    Accept --> CreateInvoice3["📝 Auto-Create Invoice:<br/>Development Fee<br/>Rp 10.000.000"]
 
-    CreateInvoice2 --> Notify2[🔔 Notifikasi<br/>In-app + Email]
+    CreateInvoice2 --> Notify2["🔔 Notifikasi<br/>In-app + Email"]
     CreateInvoice3 --> Notify2
 
-    Notify2 --> Pay2[👤 Parent Upload<br/>Bukti Bayar x2]
+    Notify2 --> Pay2["👤 Parent Upload<br/>Bukti Bayar x2"]
 
-    Pay2 -->|Finance Verifikasi| Verify2[✅ Registration<br/>VERIFIED]
-    Verify2 --> Verify3[✅ Development<br/>VERIFIED]
-    Verify3 --> Enroll[📚 Buat Enrollment<br/>Status: ENROLLED]
+    Pay2 -->|Finance Verifikasi| Verify2["✅ Registration<br/>VERIFIED"]
+    Verify2 --> Verify3["✅ Development<br/>VERIFIED"]
+    Verify3 --> Enroll["📚 Buat Enrollment<br/>Status: ENROLLED"]
 
-    Enroll --> CreateInvoice4[📝 Auto-Create Invoice:<br/>Uniform Package<br/>Rp 3.500.000]
-    Enroll --> CreateInvoice5[📝 Auto-Create Invoice:<br/>Book Package<br/>Rp 4.000.000]
-    Enroll --> CreateInvoice6[📝 Auto-Create Invoice:<br/>Technology Fee<br/>Rp 2.000.000<br/>(Opsional)]
+    Enroll --> CreateInvoice4["📝 Auto-Create Invoice:<br/>Uniform Package<br/>Rp 3.500.000"]
+    Enroll --> CreateInvoice5["📝 Auto-Create Invoice:<br/>Book Package<br/>Rp 4.000.000"]
+    Enroll --> CreateInvoice6["📝 Auto-Create Invoice:<br/>Technology Fee<br/>Rp 2.000.000<br/>(Opsional)"]
 
-    CreateInvoice4 --> Notify3[🔔 Notifikasi<br/>In-app + Email]
+    CreateInvoice4 --> Notify3["🔔 Notifikasi<br/>In-app + Email"]
     CreateInvoice5 --> Notify3
     CreateInvoice6 -.-> Notify3
 
-    Notify3 --> Pay3[👤 Parent Upload<br/>Bukti Bayar]
-    Pay3 --> Finish[🎓 Proses Selesai<br/>Siap Masuk]
+    Notify3 --> Pay3["👤 Parent Upload<br/>Bukti Bayar"]
+    Pay3 --> Finish["🎓 Proses Selesai<br/>Siap Masuk"]
 
     style CreateInvoice1 fill:#fef3c7,stroke:#f59e0b
     style CreateInvoice2 fill:#fef3c7,stroke:#f59e0b
