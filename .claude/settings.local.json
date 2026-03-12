@@ -13,7 +13,13 @@
       "Bash(cmd.exe /c \"\\\\\"C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat\\\\\" -l D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\UserSeeder.php 2>&1\":*)",
       "Bash(cmd.exe /c:*)",
       "Bash(powershell.exe -Command \"& ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\UserSeeder.php''\")",
-      "Bash(powershell.exe -Command \"& ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\ApplicationSeeder.php'' ; & ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\DatabaseSeeder.php''\")"
+      "Bash(powershell.exe -Command \"& ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\ApplicationSeeder.php'' ; & ''C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat'' -l ''D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\database\\\\seeders\\\\DatabaseSeeder.php''\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat' -l 'D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Providers\\\\Filament\\\\SchoolPanelProvider.php'\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat' -l 'D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\config\\\\filament-socialite.php'\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat' -l 'D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Providers\\\\Filament\\\\SchoolPanelProvider.php'\" && powershell.exe -Command \"& 'C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat' -l 'D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\School\\\\Auth\\\\Login.php'\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat' -l 'D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Models\\\\Application.php'\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat' -l 'D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Services\\\\PaymentService.php'\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Users\\\\semil\\\\.config\\\\herd\\\\bin\\\\php.bat' -l 'D:\\\\Projects\\\\Ardika\\\\ppdb-app\\\\app\\\\Filament\\\\School\\\\Resources\\\\Applications\\\\Tables\\\\ApplicationsTable.php'\")"
     ]
   }
 }

@@ -530,7 +530,7 @@ class Application extends Model
 
             if ($toStatus === 'submitted' && ! $locked->canBeSubmitted()) {
                 throw new RuntimeException(
-                    'Application is not eligible for submission. Complete all required data, documents, and verified pre-submission payment first.'
+                    'Application is not eligible for submission. Complete all required data and parent/guardian information first.'
                 );
             }
 
@@ -571,6 +571,9 @@ class Application extends Model
                 ],
                 userId: $actorId
             );
+
+            // Auto-create payments on status change
+            $this->handlePaymentCreation($toStatus);
         }
 
         return $changed;
@@ -595,9 +598,78 @@ class Application extends Model
     {
         return $this->isDraft()
             && $this->hasSubmissionRequiredFields()
-            && $this->parentGuardians()->count() >= 2
-            && $this->hasVerifiedPreSubmissionPayment()
-            && $this->getCompletionPercentage() === 100;
+            && $this->parentGuardians()->count() >= 2;
+    }
+
+    /**
+     * Check if application can be accepted (requires verified pre-submission payment).
+     */
+    public function canBeAccepted(): bool
+    {
+        return $this->payments()
+            ->whereHas('paymentType', fn ($q) => $q->where('payment_stage', 'pre_submission'))
+            ->where('status', 'verified')
+            ->exists();
+    }
+
+    /**
+     * Get the missing payment message for acceptance.
+     */
+    public function getMissingPaymentMessage(): ?string
+    {
+        if ($this->canBeAccepted()) {
+            return null;
+        }
+
+        $preSubmissionPayments = $this->payments()
+            ->whereHas('paymentType', fn ($q) => $q->where('payment_stage', 'pre_submission'))
+            ->with('paymentType')
+            ->get();
+
+        if ($preSubmissionPayments->isEmpty()) {
+            return 'User belum membayar Saving Seat Payment (invoice belum dibuat)';
+        }
+
+        $unpaidPayments = $preSubmissionPayments->where('status', '!=', 'verified');
+        if ($unpaidPayments->isNotEmpty()) {
+            $names = $unpaidPayments->map(fn ($p) => $p->paymentType?->name ?? 'Unknown')->join(', ');
+            return "User belum membayar: {$names}";
+        }
+
+        return null;
+    }
+
+    /**
+     * Handle automatic payment creation on status transitions.
+     */
+    protected function handlePaymentCreation(string $toStatus): void
+    {
+        /** @var \App\Services\PaymentService $paymentService */
+        $paymentService = app(\App\Services\PaymentService::class);
+
+        if ($toStatus === 'submitted') {
+            // Auto-create Saving Seat Payment after submission
+            $payment = $paymentService->createPreSubmissionPayment($this);
+            if ($payment) {
+                $paymentService->notifyParentAboutPayment($payment);
+            }
+        }
+
+        if ($toStatus === 'accepted') {
+            // Auto-create Registration + Development Payments after acceptance
+            $payments = $paymentService->createPostAcceptancePayments($this);
+            foreach ($payments as $payment) {
+                $paymentService->notifyParentAboutPayment($payment);
+            }
+        }
+
+        if ($toStatus === 'enrolled') {
+            // Auto-create Enrollment Payments (Uniform + Books + Technology)
+            $payments = $paymentService->createEnrollmentPayments($this);
+            foreach ($payments as $payment) {
+                $paymentService->notifyParentAboutPayment($payment);
+            }
+        }
     }
 
     public function hasVerifiedPreSubmissionPayment(): bool
@@ -689,7 +761,6 @@ class Application extends Model
             'personal_info' => filled($this->student_first_name) && filled($this->student_last_name) && filled($this->birth_date),
             'address' => filled($this->current_address) && filled($this->current_city) && filled($this->current_country),
             'parents' => $this->parentGuardians()->count() >= 2,
-            'payment' => $this->hasVerifiedPreSubmissionPayment(),
         ];
 
         $completed = count(array_filter($steps));

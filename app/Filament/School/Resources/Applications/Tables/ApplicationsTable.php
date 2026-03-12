@@ -306,9 +306,25 @@ class ApplicationsTable
                     ->schema([
                         Select::make('status')
                             ->label('New Status')
-                            ->options(fn (Application $record): array => $record->availableStatusOptions())
+                            ->options(function (Application $record): array {
+                                $options = $record->availableStatusOptions();
+
+                                // Remove 'accepted' option if pre-submission payment not verified
+                                if (isset($options['accepted']) && ! $record->canBeAccepted()) {
+                                    unset($options['accepted']);
+                                }
+
+                                return $options;
+                            })
                             ->required()
-                            ->native(false),
+                            ->native(false)
+                            ->helperText(function (Application $record): ?string {
+                                // Show warning if trying to access 'accepted' but payment not verified
+                                if (in_array('accepted', $record->availableStatusOptions()) && ! $record->canBeAccepted()) {
+                                    return $record->getMissingPaymentMessage();
+                                }
+                                return null;
+                            }),
                         Textarea::make('status_notes')
                             ->label('Status Notes')
                             ->rows(3),
@@ -317,6 +333,17 @@ class ApplicationsTable
                         $oldStatus = $record->status;
                         $targetStatus = (string) $data['status'];
                         $statusNotes = $data['status_notes'] ?? null;
+
+                        // Extra validation: prevent accepting without verified payment
+                        if ($targetStatus === 'accepted' && ! $record->canBeAccepted()) {
+                            Notification::make()
+                                ->title('Cannot Accept Application')
+                                ->body($record->getMissingPaymentMessage())
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
 
                         try {
                             $changed = $record->transitionStatus(
@@ -395,16 +422,25 @@ class ApplicationsTable
                                 ->label('New Status')
                                 ->options(Application::statusOptions())
                                 ->required()
-                                ->native(false),
+                                ->native(false)
+                                ->helperText('Note: Acceptance requires verified Saving Seat payment for each application.'),
                         ])
                     ->action(function ($records, array $data): void {
                         $updated = 0;
                         $skipped = 0;
                         $failed = 0;
+                        $paymentBlocked = 0;
                         $targetStatus = (string) $data['status'];
 
                         foreach ($records as $record) {
                             $oldStatus = $record->status;
+
+                            // Block bulk acceptance without verified payment
+                            if ($targetStatus === 'accepted' && ! $record->canBeAccepted()) {
+                                $paymentBlocked++;
+                                continue;
+                            }
+
                             try {
                                 $changed = $record->transitionStatus(
                                     toStatus: $targetStatus,
@@ -430,9 +466,20 @@ class ApplicationsTable
                             $updated++;
                         }
 
+                        $bodyParts = ["Updated: {$updated}"];
+                        if ($skipped > 0) {
+                            $bodyParts[] = "Skipped: {$skipped}";
+                        }
+                        if ($failed > 0) {
+                            $bodyParts[] = "Failed: {$failed}";
+                        }
+                        if ($paymentBlocked > 0) {
+                            $bodyParts[] = "Payment Required: {$paymentBlocked}";
+                        }
+
                         Notification::make()
                             ->title('Bulk status update finished')
-                            ->body("Updated: {$updated}, Skipped: {$skipped}, Failed: {$failed}")
+                            ->body(implode(', ', $bodyParts))
                             ->success()
                             ->send();
                     })

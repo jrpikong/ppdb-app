@@ -36,4 +36,22 @@ return [
             explode(',', (string) env('FILAMENT_SOCIALITE_MY_PANEL_DOMAIN_ALLOW_LIST', ''))
         ))),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | School panel social auth controls
+    |--------------------------------------------------------------------------
+    |
+    | Staff login via Google OAuth - NO registration, email must already exist
+    | in the system with a valid staff role (school_admin, admin, admission_admin,
+    | finance_admin, or super_admin).
+    |
+    */
+    'school_panel' => [
+        'enabled' => (bool) env('FILAMENT_SOCIALITE_SCHOOL_PANEL_ENABLED', false),
+        'domain_allow_list' => array_values(array_filter(array_map(
+            static fn (string $domain): string => strtolower(trim($domain)),
+            explode(',', (string) env('FILAMENT_SOCIALITE_SCHOOL_PANEL_DOMAIN_ALLOW_LIST', ''))
+        ))),
+    ],
 ];
